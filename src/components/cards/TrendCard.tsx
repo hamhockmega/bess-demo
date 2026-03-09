@@ -23,9 +23,9 @@ const SERIES_COLORS: Record<string, string> = {
 };
 
 export const TrendCard: React.FC = () => {
-  const { selectedInterval, trendMetric, trendScenario, setTrendMetric, setTrendScenario } = useDashboardStore();
+  const { selectedInterval, trendMetric, trendScenario, setTrendMetric, setTrendScenario, queryDate } = useDashboardStore();
 
-  const availableSeries = useMemo(() => findSeriesByMetric(trendMetric), [trendMetric]);
+  const availableSeries = useMemo(() => findSeriesByMetric(trendMetric, '全省', queryDate), [trendMetric, queryDate]);
   const availableScenarios = useMemo(() => availableSeries.map(s => s.scenario), [availableSeries]);
 
   const chartData = useMemo(() => {
