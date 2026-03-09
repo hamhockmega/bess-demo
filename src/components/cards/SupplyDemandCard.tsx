@@ -4,7 +4,7 @@ import { PanelCard } from '../dashboard/PanelCard';
 import { DashboardTabs } from '../dashboard/DashboardTabs';
 import { KpiCard } from '../dashboard/KpiCard';
 import { useDashboardStore } from '@/store/dashboardState';
-import { weatherSeriesData } from '@/data/mockData';
+import { findSeriesByMetric } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 
 const WEATHER_METRICS = ['风速', '辐照', '降水'];
