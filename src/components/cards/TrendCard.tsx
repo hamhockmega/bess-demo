@@ -4,7 +4,7 @@ import { PanelCard } from '../dashboard/PanelCard';
 import { DashboardTabs } from '../dashboard/DashboardTabs';
 import { KpiCard } from '../dashboard/KpiCard';
 import { useDashboardStore } from '@/store/dashboardState';
-import { findSeriesByMetric, priceSeriesData, powerBidSeriesData, type Scenario } from '@/data/mockData';
+import { findSeriesByMetric, type Scenario } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 
 const METRIC_TABS = ['日前电价-发电侧均价', '实时电价-发电侧均价', '日前中标功率', '实时中标功率'];
