@@ -89,77 +89,120 @@ function generateSeries(
   return { metricName, metricFamily, scenario, unit, node, data };
 }
 
-// === PRICE SERIES ===
-export const priceSeriesData: MetricSeries[] = [
-  generateSeries('日前电价-发电侧均价', 'price', '智能预测', '元/MWh', '全省', (i) => pricePattern(i, 320, 120, 1)),
-  generateSeries('日前电价-发电侧均价', 'price', '出清前上午', '元/MWh', '全省', (i) => pricePattern(i, 315, 115, 2)),
-  generateSeries('日前电价-发电侧均价', 'price', '出清前下午', '元/MWh', '全省', (i) => pricePattern(i, 318, 118, 3)),
-  generateSeries('日前电价-发电侧均价', 'price', '出清后', '元/MWh', '全省', (i) => pricePattern(i, 322, 122, 4)),
-  generateSeries('日前电价-发电侧均价', 'price', '实际', '元/MWh', '全省', (i) => pricePattern(i, 325, 125, 5)),
-  generateSeries('实时电价-发电侧均价', 'price', '智能预测', '元/MWh', '全省', (i) => pricePattern(i, 310, 130, 6)),
-  generateSeries('实时电价-发电侧均价', 'price', '实际', '元/MWh', '全省', (i) => pricePattern(i, 328, 135, 7)),
-  generateSeries('全省节点电价', 'price', '统一结算价', '元/MWh', '全省', (i) => pricePattern(i, 330, 110, 8)),
-  generateSeries('全省节点电价', 'price', '日前市场经济出清', '元/MWh', '全省', (i) => pricePattern(i, 325, 115, 9)),
-  generateSeries('节点电价', 'price', '统一结算价', '元/MWh', '山东.福山站/220kV.#2母线', (i) => pricePattern(i, 335, 120, 10)),
-  generateSeries('节点电价', 'price', '日前市场经济出清', '元/MWh', '山东.福山站/220kV.#2母线', (i) => pricePattern(i, 328, 118, 11)),
-];
+// === DATA GENERATION BY DATE ===
+// Generate all series for a given date — the date seed shifts patterns so each date looks different
 
-// === POWER BID SERIES ===
-export const powerBidSeriesData: MetricSeries[] = [
-  generateSeries('日前中标功率', 'powerBid', '实际', 'MW', '全省', (i) => loadPattern(i, 450, 200, 20)),
-  generateSeries('日前中标功率', 'powerBid', '智能预测', 'MW', '全省', (i) => loadPattern(i, 445, 195, 21)),
-  generateSeries('实时中标功率', 'powerBid', '实际', 'MW', '全省', (i) => loadPattern(i, 460, 210, 22)),
-  generateSeries('实时中标功率', 'powerBid', '智能预测', 'MW', '全省', (i) => loadPattern(i, 455, 205, 23)),
-];
+function generateAllSeriesForDate(date: string) {
+  const ds = dateSeed(date);
+  const s = (base: number) => base + (ds % 37) - 18; // shift base slightly
+  const a = (amp: number) => amp * (0.85 + (ds % 30) / 100); // vary amplitude
 
-// === LOAD SERIES ===
-export const loadSeriesData: MetricSeries[] = [
-  // 直调负荷
-  generateSeries('直调负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, 35000, 8000, 30)),
-  generateSeries('直调负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, 35200, 8100, 31)),
-  generateSeries('直调负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, 35500, 8200, 32)),
-  generateSeries('直调负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, 35800, 8500, 33)),
-  generateSeries('直调负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, 34800, 7800, 34)),
-  generateSeries('直调负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, 35100, 8000, 35)),
-  // 全网负荷
-  generateSeries('全网负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, 42000, 10000, 40)),
-  generateSeries('全网负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, 42200, 10100, 41)),
-  generateSeries('全网负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, 42500, 10200, 42)),
-  generateSeries('全网负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, 42800, 10500, 43)),
-  generateSeries('全网负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, 41800, 9800, 44)),
-  generateSeries('全网负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, 42100, 10000, 45)),
-  // 联络线受电负荷
-  generateSeries('联络线受电负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, 5000, 1500, 50)),
-  generateSeries('联络线受电负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, 5100, 1550, 51)),
-  generateSeries('联络线受电负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, 5200, 1600, 52)),
-  generateSeries('联络线受电负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, 5300, 1650, 53)),
-  generateSeries('联络线受电负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, 4900, 1400, 54)),
-  generateSeries('联络线受电负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, 5050, 1500, 55)),
-];
+  const priceSeriesData: MetricSeries[] = [
+    generateSeries('日前电价-发电侧均价', 'price', '智能预测', '元/MWh', '全省', (i) => pricePattern(i, s(320), a(120), 1 + ds), date),
+    generateSeries('日前电价-发电侧均价', 'price', '出清前上午', '元/MWh', '全省', (i) => pricePattern(i, s(315), a(115), 2 + ds), date),
+    generateSeries('日前电价-发电侧均价', 'price', '出清前下午', '元/MWh', '全省', (i) => pricePattern(i, s(318), a(118), 3 + ds), date),
+    generateSeries('日前电价-发电侧均价', 'price', '出清后', '元/MWh', '全省', (i) => pricePattern(i, s(322), a(122), 4 + ds), date),
+    generateSeries('日前电价-发电侧均价', 'price', '实际', '元/MWh', '全省', (i) => pricePattern(i, s(325), a(125), 5 + ds), date),
+    generateSeries('实时电价-发电侧均价', 'price', '智能预测', '元/MWh', '全省', (i) => pricePattern(i, s(310), a(130), 6 + ds), date),
+    generateSeries('实时电价-发电侧均价', 'price', '实际', '元/MWh', '全省', (i) => pricePattern(i, s(328), a(135), 7 + ds), date),
+    generateSeries('全省节点电价', 'price', '统一结算价', '元/MWh', '全省', (i) => pricePattern(i, s(330), a(110), 8 + ds), date),
+    generateSeries('全省节点电价', 'price', '日前市场经济出清', '元/MWh', '全省', (i) => pricePattern(i, s(325), a(115), 9 + ds), date),
+    generateSeries('节点电价', 'price', '统一结算价', '元/MWh', '山东.福山站/220kV.#2母线', (i) => pricePattern(i, s(335), a(120), 10 + ds), date),
+    generateSeries('节点电价', 'price', '日前市场经济出清', '元/MWh', '山东.福山站/220kV.#2母线', (i) => pricePattern(i, s(328), a(118), 11 + ds), date),
+  ];
 
-// === MARKET SPACE SERIES ===
-export const marketSpaceSeriesData: MetricSeries[] = [
-  generateSeries('市场竞价空间', 'marketSpace', '实际', 'MW', '全省', (i) => loadPattern(i, 8000, 3000, 60)),
-  generateSeries('市场竞价空间', 'marketSpace', '出清前上午', 'MW', '全省', (i) => loadPattern(i, 7800, 2900, 61)),
-  generateSeries('火电竞价空间', 'marketSpace', '实际', 'MW', '全省', (i) => loadPattern(i, 6000, 2500, 62)),
-  generateSeries('火电竞价空间', 'marketSpace', '出清前上午', 'MW', '全省', (i) => loadPattern(i, 5800, 2400, 63)),
-];
+  const powerBidSeriesData: MetricSeries[] = [
+    generateSeries('日前中标功率', 'powerBid', '实际', 'MW', '全省', (i) => loadPattern(i, s(450), a(200), 20 + ds), date),
+    generateSeries('日前中标功率', 'powerBid', '智能预测', 'MW', '全省', (i) => loadPattern(i, s(445), a(195), 21 + ds), date),
+    generateSeries('实时中标功率', 'powerBid', '实际', 'MW', '全省', (i) => loadPattern(i, s(460), a(210), 22 + ds), date),
+    generateSeries('实时中标功率', 'powerBid', '智能预测', 'MW', '全省', (i) => loadPattern(i, s(455), a(205), 23 + ds), date),
+  ];
 
-// === WEATHER SERIES ===
-export const weatherSeriesData: MetricSeries[] = [
-  generateSeries('风速', 'weather', '实际', 'm/s', '全省', (i) => Math.max(0, noise(5, 3, i, 70))),
-  generateSeries('风速', 'weather', '智能预测', 'm/s', '全省', (i) => Math.max(0, noise(4.8, 2.8, i, 71))),
-  generateSeries('辐照', 'weather', '实际', 'W/m²', '全省', (i) => {
-    const hour = i / 4;
-    return hour > 6 && hour < 18 ? Math.max(0, 600 * Math.sin((hour - 6) / 12 * Math.PI) + noise(0, 80, i, 72)) : 0;
-  }),
-  generateSeries('辐照', 'weather', '智能预测', 'W/m²', '全省', (i) => {
-    const hour = i / 4;
-    return hour > 6 && hour < 18 ? Math.max(0, 580 * Math.sin((hour - 6) / 12 * Math.PI) + noise(0, 70, i, 73)) : 0;
-  }),
-  generateSeries('降水', 'weather', '实际', 'mm', '全省', (i) => Math.max(0, noise(0.5, 1, i, 74))),
-  generateSeries('降水', 'weather', '智能预测', 'mm', '全省', (i) => Math.max(0, noise(0.4, 0.9, i, 75))),
-];
+  const loadSeriesData: MetricSeries[] = [
+    generateSeries('直调负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, s(35000), a(8000), 30 + ds), date),
+    generateSeries('直调负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, s(35200), a(8100), 31 + ds), date),
+    generateSeries('直调负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, s(35500), a(8200), 32 + ds), date),
+    generateSeries('直调负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, s(35800), a(8500), 33 + ds), date),
+    generateSeries('直调负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, s(34800), a(7800), 34 + ds), date),
+    generateSeries('直调负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, s(35100), a(8000), 35 + ds), date),
+    generateSeries('全网负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, s(42000), a(10000), 40 + ds), date),
+    generateSeries('全网负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, s(42200), a(10100), 41 + ds), date),
+    generateSeries('全网负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, s(42500), a(10200), 42 + ds), date),
+    generateSeries('全网负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, s(42800), a(10500), 43 + ds), date),
+    generateSeries('全网负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, s(41800), a(9800), 44 + ds), date),
+    generateSeries('全网负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, s(42100), a(10000), 45 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '出清前上午', 'MW', '全省', (i) => loadPattern(i, s(5000), a(1500), 50 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '出清前下午', 'MW', '全省', (i) => loadPattern(i, s(5100), a(1550), 51 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '出清后', 'MW', '全省', (i) => loadPattern(i, s(5200), a(1600), 52 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '实际', 'MW', '全省', (i) => loadPattern(i, s(5300), a(1650), 53 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '周前', 'MW', '全省', (i) => loadPattern(i, s(4900), a(1400), 54 + ds), date),
+    generateSeries('联络线受电负荷', 'load', '智能预测', 'MW', '全省', (i) => loadPattern(i, s(5050), a(1500), 55 + ds), date),
+  ];
+
+  const marketSpaceSeriesData: MetricSeries[] = [
+    generateSeries('市场竞价空间', 'marketSpace', '实际', 'MW', '全省', (i) => loadPattern(i, s(8000), a(3000), 60 + ds), date),
+    generateSeries('市场竞价空间', 'marketSpace', '出清前上午', 'MW', '全省', (i) => loadPattern(i, s(7800), a(2900), 61 + ds), date),
+    generateSeries('火电竞价空间', 'marketSpace', '实际', 'MW', '全省', (i) => loadPattern(i, s(6000), a(2500), 62 + ds), date),
+    generateSeries('火电竞价空间', 'marketSpace', '出清前上午', 'MW', '全省', (i) => loadPattern(i, s(5800), a(2400), 63 + ds), date),
+  ];
+
+  const weatherSeriesData: MetricSeries[] = [
+    generateSeries('风速', 'weather', '实际', 'm/s', '全省', (i) => Math.max(0, noise(5, 3, i, 70 + ds)), date),
+    generateSeries('风速', 'weather', '智能预测', 'm/s', '全省', (i) => Math.max(0, noise(4.8, 2.8, i, 71 + ds)), date),
+    generateSeries('辐照', 'weather', '实际', 'W/m²', '全省', (i) => {
+      const hour = i / 4;
+      return hour > 6 && hour < 18 ? Math.max(0, 600 * Math.sin((hour - 6) / 12 * Math.PI) + noise(0, 80, i, 72 + ds)) : 0;
+    }, date),
+    generateSeries('辐照', 'weather', '智能预测', 'W/m²', '全省', (i) => {
+      const hour = i / 4;
+      return hour > 6 && hour < 18 ? Math.max(0, 580 * Math.sin((hour - 6) / 12 * Math.PI) + noise(0, 70, i, 73 + ds)) : 0;
+    }, date),
+    generateSeries('降水', 'weather', '实际', 'mm', '全省', (i) => Math.max(0, noise(0.5, 1, i, 74 + ds)), date),
+    generateSeries('降水', 'weather', '智能预测', 'mm', '全省', (i) => Math.max(0, noise(0.4, 0.9, i, 75 + ds)), date),
+  ];
+
+  const allSeries: MetricSeries[] = [
+    ...priceSeriesData,
+    ...powerBidSeriesData,
+    ...loadSeriesData,
+    ...marketSpaceSeriesData,
+    ...weatherSeriesData,
+  ];
+
+  // Clearing comparison also varies by date
+  const dsFactor = 0.9 + (ds % 20) / 100;
+  const clearingComparison: ClearingComparisonRow[] = [
+    { metric: '日前均价', unit: '元/MWh', 出清前上午: +(312.5 * dsFactor).toFixed(1), 出清前下午: +(318.2 * dsFactor).toFixed(1), 出清后: +(325.1 * dsFactor).toFixed(1), 实际: +(328.6 * dsFactor).toFixed(1) },
+    { metric: '日前最高价', unit: '元/MWh', 出清前上午: +(456.2 * dsFactor).toFixed(1), 出清前下午: +(462.8 * dsFactor).toFixed(1), 出清后: +(478.3 * dsFactor).toFixed(1), 实际: +(485.1 * dsFactor).toFixed(1) },
+    { metric: '日前最低价', unit: '元/MWh', 出清前上午: +(185.3 * dsFactor).toFixed(1), 出清前下午: +(188.6 * dsFactor).toFixed(1), 出清后: +(192.1 * dsFactor).toFixed(1), 实际: +(195.4 * dsFactor).toFixed(1) },
+    { metric: '峰谷差', unit: '元/MWh', 出清前上午: +(270.9 * dsFactor).toFixed(1), 出清前下午: +(274.2 * dsFactor).toFixed(1), 出清后: +(286.2 * dsFactor).toFixed(1), 实际: +(289.7 * dsFactor).toFixed(1) },
+    { metric: '日前总电量', unit: 'MWh', 出清前上午: Math.round(12500 * dsFactor), 出清前下午: Math.round(12650 * dsFactor), 出清后: Math.round(12800 * dsFactor), 实际: Math.round(12950 * dsFactor) },
+    { metric: '最大负荷', unit: 'MW', 出清前上午: Math.round(42500 * dsFactor), 出清前下午: Math.round(42800 * dsFactor), 出清后: Math.round(43200 * dsFactor), 实际: Math.round(43500 * dsFactor) },
+    { metric: '最小负荷', unit: 'MW', 出清前上午: Math.round(28500 * dsFactor), 出清前下午: Math.round(28800 * dsFactor), 出清后: Math.round(29100 * dsFactor), 实际: Math.round(29300 * dsFactor) },
+  ];
+
+  return { allSeries, clearingComparison };
+}
+
+// Cache to avoid regenerating on every render
+const dataCache = new Map<string, ReturnType<typeof generateAllSeriesForDate>>();
+
+export function getDataForDate(date: string) {
+  if (!dataCache.has(date)) {
+    dataCache.set(date, generateAllSeriesForDate(date));
+  }
+  return dataCache.get(date)!;
+}
+
+// Default exports for backward compat
+const defaultData = getDataForDate('2026-03-08');
+export const priceSeriesData = defaultData.allSeries.filter(s => s.metricFamily === 'price');
+export const powerBidSeriesData = defaultData.allSeries.filter(s => s.metricFamily === 'powerBid');
+export const loadSeriesData = defaultData.allSeries.filter(s => s.metricFamily === 'load');
+export const marketSpaceSeriesData = defaultData.allSeries.filter(s => s.metricFamily === 'marketSpace');
+export const weatherSeriesData = defaultData.allSeries.filter(s => s.metricFamily === 'weather');
+export const allSeries = defaultData.allSeries;
+export const clearingComparisonData = defaultData.clearingComparison;
 
 // === TARIFF DATA (monthly, not time-series) ===
 export interface TariffRow {
@@ -231,30 +274,13 @@ export interface ClearingComparisonRow {
   实际: number;
 }
 
-export const clearingComparisonData: ClearingComparisonRow[] = [
-  { metric: '日前均价', unit: '元/MWh', 出清前上午: 312.5, 出清前下午: 318.2, 出清后: 325.1, 实际: 328.6 },
-  { metric: '日前最高价', unit: '元/MWh', 出清前上午: 456.2, 出清前下午: 462.8, 出清后: 478.3, 实际: 485.1 },
-  { metric: '日前最低价', unit: '元/MWh', 出清前上午: 185.3, 出清前下午: 188.6, 出清后: 192.1, 实际: 195.4 },
-  { metric: '峰谷差', unit: '元/MWh', 出清前上午: 270.9, 出清前下午: 274.2, 出清后: 286.2, 实际: 289.7 },
-  { metric: '日前总电量', unit: 'MWh', 出清前上午: 12500, 出清前下午: 12650, 出清后: 12800, 实际: 12950 },
-  { metric: '最大负荷', unit: 'MW', 出清前上午: 42500, 出清前下午: 42800, 出清后: 43200, 实际: 43500 },
-  { metric: '最小负荷', unit: 'MW', 出清前上午: 28500, 出清前下午: 28800, 出清后: 29100, 实际: 29300 },
-];
-
-// All series combined for easy lookup
-export const allSeries: MetricSeries[] = [
-  ...priceSeriesData,
-  ...powerBidSeriesData,
-  ...loadSeriesData,
-  ...marketSpaceSeriesData,
-  ...weatherSeriesData,
-];
-
-// Lookup helpers
-export function findSeries(metricName: string, scenario: Scenario, node: string = '全省'): MetricSeries | undefined {
-  return allSeries.find(s => s.metricName === metricName && s.scenario === scenario && s.node === node);
+// Lookup helpers (date-aware)
+export function findSeries(metricName: string, scenario: Scenario, node: string = '全省', date?: string): MetricSeries | undefined {
+  const series = date ? getDataForDate(date).allSeries : allSeries;
+  return series.find(s => s.metricName === metricName && s.scenario === scenario && s.node === node);
 }
 
-export function findSeriesByMetric(metricName: string, node: string = '全省'): MetricSeries[] {
-  return allSeries.filter(s => s.metricName === metricName && s.node === node);
+export function findSeriesByMetric(metricName: string, node: string = '全省', date?: string): MetricSeries[] {
+  const series = date ? getDataForDate(date).allSeries : allSeries;
+  return series.filter(s => s.metricName === metricName && s.node === node);
 }
