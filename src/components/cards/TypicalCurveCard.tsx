@@ -4,7 +4,7 @@ import { PanelCard } from '../dashboard/PanelCard';
 import { DashboardTabs } from '../dashboard/DashboardTabs';
 import { KpiCard } from '../dashboard/KpiCard';
 import { useDashboardStore } from '@/store/dashboardState';
-import { loadSeriesData, type Scenario } from '@/data/mockData';
+import { findSeriesByMetric, type Scenario } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 
 const LOAD_METRICS = ['直调负荷', '全网负荷', '联络线受电负荷'];
