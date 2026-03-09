@@ -17,7 +17,8 @@ const BAR_COLORS = {
 };
 
 export const ClearingComparisonCard: React.FC = () => {
-  const { clearingViewType, setClearingViewType } = useDashboardStore();
+  const { clearingViewType, setClearingViewType, queryDate } = useDashboardStore();
+  const clearingComparisonData = useMemo(() => getDataForDate(queryDate).clearingComparison, [queryDate]);
   const [selectedMetrics, setSelectedMetrics] = useState(['日前均价', '日前最高价', '日前最低价']);
 
   const chartData = useMemo(() => {

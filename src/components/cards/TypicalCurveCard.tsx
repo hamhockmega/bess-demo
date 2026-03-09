@@ -20,12 +20,12 @@ const SERIES_COLORS: Record<string, string> = {
 };
 
 export const TypicalCurveCard: React.FC = () => {
-  const { selectedInterval, curveMetric, setCurveMetric } = useDashboardStore();
+  const { selectedInterval, curveMetric, setCurveMetric, queryDate } = useDashboardStore();
   const [activeScenarios, setActiveScenarios] = useState<Scenario[]>(['出清前上午', '出清后', '实际']);
 
   const availableSeries = useMemo(
-    () => loadSeriesData.filter(s => s.metricName === curveMetric),
-    [curveMetric]
+    () => findSeriesByMetric(curveMetric, '全省', queryDate),
+    [curveMetric, queryDate]
   );
 
   const chartData = useMemo(() => {
