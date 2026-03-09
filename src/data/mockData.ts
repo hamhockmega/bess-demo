@@ -34,7 +34,16 @@ function generateTimeLabels(): string[] {
 }
 
 export const TIME_LABELS_15MIN = generateTimeLabels();
-const BASE_DATE = '2026-03-08';
+
+// Hash a date string into a numeric seed for deterministic variation
+function dateSeed(dateStr: string): number {
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
 
 // Noise generator
 function noise(base: number, amplitude: number, i: number, seed: number = 0): number {
@@ -67,10 +76,11 @@ function generateSeries(
   scenario: Scenario,
   unit: string,
   node: string,
-  patternFn: (i: number) => number
+  patternFn: (i: number) => number,
+  dateKey: string = '2026-03-08'
 ): MetricSeries {
   const data: DataPoint[] = TIME_LABELS_15MIN.map((timeKey, i) => ({
-    dateKey: BASE_DATE,
+    dateKey,
     timeKey,
     timestamp: i,
     value: Math.round(patternFn(i) * 100) / 100,
