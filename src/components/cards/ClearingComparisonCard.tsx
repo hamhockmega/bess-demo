@@ -4,7 +4,7 @@ import { PanelCard } from '../dashboard/PanelCard';
 import { DashboardTabs } from '../dashboard/DashboardTabs';
 import { SummaryTable } from '../dashboard/SummaryTable';
 import { useDashboardStore } from '@/store/dashboardState';
-import { clearingComparisonData } from '@/data/mockData';
+import { getDataForDate } from '@/data/mockData';
 
 const VIEW_TABS = ['图表', '表格'];
 const SCENARIOS = ['出清前上午', '出清前下午', '出清后', '实际'] as const;
