@@ -28,7 +28,7 @@ const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
 const SpotMarketBoard: React.FC = () => {
   const {
     selectedDate, selectedInterval, mainSection,
-    setSelectedDate, setSelectedInterval, setMainSection
+    setSelectedDate, setSelectedInterval, setMainSection, executeQuery
   } = useDashboardStore();
 
   return (
@@ -74,7 +74,10 @@ const SpotMarketBoard: React.FC = () => {
             />
           </div>
 
-          <button className="px-3 py-1 text-xs bg-dashboard-cyan/20 text-dashboard-cyan border border-dashboard-cyan/40 rounded-sm hover:bg-dashboard-cyan/30 transition-colors">
+          <button
+            onClick={executeQuery}
+            className="px-3 py-1 text-xs bg-dashboard-cyan/20 text-dashboard-cyan border border-dashboard-cyan/40 rounded-sm hover:bg-dashboard-cyan/30 transition-colors"
+          >
             查询
           </button>
 

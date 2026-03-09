@@ -4,7 +4,7 @@ import { PanelCard } from '../dashboard/PanelCard';
 import { DashboardTabs } from '../dashboard/DashboardTabs';
 import { KpiCard } from '../dashboard/KpiCard';
 import { useDashboardStore } from '@/store/dashboardState';
-import { weatherSeriesData } from '@/data/mockData';
+import { findSeriesByMetric } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 
 const WEATHER_METRICS = ['风速', '辐照', '降水'];
@@ -12,11 +12,11 @@ const UNIT_MAP: Record<string, string> = { '风速': 'm/s', '辐照': 'W/m²', '
 const AVG_LABEL: Record<string, string> = { '风速': '全省平均风速', '辐照': '全省平均辐照', '降水': '全省平均降水' };
 
 export const SupplyDemandCard: React.FC = () => {
-  const { selectedInterval, supplyDemandMetric, setSupplyDemandMetric } = useDashboardStore();
+  const { selectedInterval, supplyDemandMetric, setSupplyDemandMetric, queryDate } = useDashboardStore();
 
   const availableSeries = useMemo(
-    () => weatherSeriesData.filter(s => s.metricName === supplyDemandMetric),
-    [supplyDemandMetric]
+    () => findSeriesByMetric(supplyDemandMetric, '全省', queryDate),
+    [supplyDemandMetric, queryDate]
   );
 
   const chartData = useMemo(() => {
