@@ -28,7 +28,7 @@ const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
 const SpotMarketBoard: React.FC = () => {
   const {
     selectedDate, selectedInterval, mainSection,
-    setSelectedDate, setSelectedInterval, setMainSection
+    setSelectedDate, setSelectedInterval, setMainSection, executeQuery
   } = useDashboardStore();
 
   return (
