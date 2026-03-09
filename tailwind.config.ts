@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["'Noto Sans SC'", "system-ui", "-apple-system", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +60,22 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        dashboard: {
+          bg: "hsl(var(--dashboard-bg))",
+          header: "hsl(var(--dashboard-header))",
+          nav: "hsl(var(--dashboard-nav))",
+          cyan: "hsl(var(--dashboard-cyan))",
+          "cyan-dim": "hsl(var(--dashboard-cyan-dim))",
+          "cyan-glow": "hsl(var(--dashboard-cyan-glow))",
+          green: "hsl(var(--dashboard-green))",
+          red: "hsl(var(--dashboard-red))",
+          orange: "hsl(var(--dashboard-orange))",
+          yellow: "hsl(var(--dashboard-yellow))",
+          purple: "hsl(var(--dashboard-purple))",
+          "text-bright": "hsl(var(--dashboard-text-bright))",
+          "text-dim": "hsl(var(--dashboard-text-dim))",
+          "panel-border": "hsl(var(--dashboard-panel-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,20 +84,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
