@@ -23,6 +23,13 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Find active top-level item (check children paths too)
+  const activeParent = boardNavItems.find((item) =>
+    item.children
+      ? item.children.some((c) => location.pathname === c.path)
+      : location.pathname === item.path
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-dashboard-bg">
       {/* Top Header */}
@@ -34,20 +41,26 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
 
         {/* Board nav */}
         <nav className="flex items-center gap-0.5 mr-auto">
-          {boardNavItems.map((item) =>
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={cn(
-              'px-3 py-1.5 text-xs transition-all duration-200 relative',
-              location.pathname === item.path ?
-              'text-dashboard-cyan tab-active-indicator' :
-              'text-muted-foreground hover:text-foreground'
-            )}>
-            
-              {item.label}
-            </button>
-          )}
+          {boardNavItems.map((item) => {
+            const isActive = item.children
+              ? item.children.some((c) => location.pathname === c.path)
+              : location.pathname === item.path;
+
+            return (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={cn(
+                  'px-3 py-1.5 text-xs transition-all duration-200 relative',
+                  isActive
+                    ? 'text-dashboard-cyan tab-active-indicator'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Right side */}
@@ -60,25 +73,39 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
         </div>
       </header>
 
-      {/* Secondary module nav */}
+      {/* Secondary nav: show children of active parent, then module items */}
       <div className="h-8 bg-dashboard-nav border-b border-dashboard-panel-border flex items-center px-4 shrink-0">
-        {moduleNavItems.map((item, i) =>
-        <button
-          key={item}
-          className={cn(
-            'px-3 py-1 text-xs transition-colors',
-            i === 3 ? 'text-dashboard-cyan' : 'text-muted-foreground hover:text-foreground'
-          )}>
-          
+        {activeParent?.children && activeParent.children.map((child) => (
+          <button
+            key={child.path}
+            onClick={() => navigate(child.path)}
+            className={cn(
+              'px-3 py-1 text-xs transition-colors',
+              location.pathname === child.path
+                ? 'text-dashboard-cyan'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {child.label}
+          </button>
+        ))}
+        {activeParent?.children && (
+          <span className="w-px h-3 bg-dashboard-panel-border mx-1" />
+        )}
+        {moduleNavItems.map((item) => (
+          <button
+            key={item}
+            className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
             {item}
           </button>
-        )}
+        ))}
       </div>
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {children}
       </main>
-    </div>);
-
+    </div>
+  );
 };
