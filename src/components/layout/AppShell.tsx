@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const boardNavItems = [
 { label: '交易看板', path: '/tradingBoard' },
 { label: '现货行情看板', path: '/spotMarketBoard' },
-{ label: '中长期交易信息', path: '/longTermTrading' },
+{ label: '中长期交易信息', path: '/mediumAndLongTermTradingInfo' },
 { label: '自定义看板', path: '/customBoard' }];
 
 
