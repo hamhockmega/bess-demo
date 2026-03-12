@@ -3,14 +3,20 @@ import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const boardNavItems = [
-{ label: '交易看板', path: '/tradingBoard' },
-{ label: '价格分析', path: '/spotMarketBoard' },
-{ label: '现货交易', path: '/mediumAndLongTermTradingInfo' },
-{ label: '收益分析', path: '/customBoard' }];
-
+  {
+    label: '交易看板',
+    path: '/spotMarketBoard',
+    children: [
+      { label: '价格分析', path: '/spotMarketBoard' },
+      { label: '现货交易', path: '/mediumAndLongTermTradingInfo' },
+    ],
+  },
+  { label: '收益分析', path: '/customBoard' },
+];
 
 const moduleNavItems = [
-'现货行情看板', '中长期交易信息', '自定义看板', '数据对比', '中长期交易', '系统管理'];
+  '现货行情看板', '中长期交易信息', '自定义看板', '数据对比', '中长期交易', '系统管理',
+];
 
 
 export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) => {
