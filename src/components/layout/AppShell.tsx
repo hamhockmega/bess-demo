@@ -48,7 +48,7 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-dashboard-green" />
-            山东电网 · 某风电场
+            山东 · 演示储能电站
           </span>
           <span>管理员</span>
         </div>
