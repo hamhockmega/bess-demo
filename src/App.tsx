@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SpotMarketBoard from "./pages/SpotMarketBoard";
+import MediumAndLongTermTradingInfo from "./pages/MediumAndLongTermTradingInfo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
