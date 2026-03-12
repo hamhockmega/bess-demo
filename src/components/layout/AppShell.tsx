@@ -10,7 +10,7 @@ const boardNavItems = [
 
 
 const moduleNavItems = [
-'现货行情看板', '中长期交易信息', '自定义看板', '数据对比', '中长期交易', '收益分析', '系统管理'];
+'现货行情看板', '中长期交易信息', '自定义看板', '数据对比', '中长期交易', '系统管理'];
 
 
 export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) => {
