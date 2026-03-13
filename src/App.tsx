@@ -18,6 +18,11 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/tradingBoard" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/customBoard" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/dataComparison" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/shortTermPriceForecast" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/priceReview" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/priceBenchmark" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/spotMarketBoard" element={<SpotMarketBoard />} />
           <Route path="/mediumAndLongTermTradingInfo" element={<MediumAndLongTermTradingInfo />} />
           <Route path="*" element={<NotFound />} />

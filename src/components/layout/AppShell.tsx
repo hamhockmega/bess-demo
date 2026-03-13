@@ -2,20 +2,26 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const boardNavItems = [
+const headerNavItems = [
   {
     label: '交易看板',
     path: '/spotMarketBoard',
     children: [
-      { label: '价格分析', path: '/spotMarketBoard' },
-      { label: '现货交易', path: '/mediumAndLongTermTradingInfo' },
+      { label: '现货行情看板', path: '/spotMarketBoard' },
+      { label: '中长期交易信息', path: '/mediumAndLongTermTradingInfo' },
+      { label: '自定义看板', path: '/customBoard' },
+      { label: '数据对比', path: '/dataComparison' },
     ],
   },
-  { label: '收益分析', path: '/customBoard' },
-];
-
-const moduleNavItems = [
-  '现货行情看板', '中长期交易信息', '自定义看板', '数据对比',
+  {
+    label: '价格分析',
+    path: '/shortTermPriceForecast',
+    children: [
+      { label: '短期价格预测', path: '/shortTermPriceForecast' },
+      { label: '电价复盘分析', path: '/priceReview' },
+      { label: '价格基准管理', path: '/priceBenchmark' },
+    ],
+  },
 ];
 
 
@@ -24,10 +30,8 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
   const navigate = useNavigate();
 
   // Find active top-level item (check children paths too)
-  const activeParent = boardNavItems.find((item) =>
-    item.children
-      ? item.children.some((c) => location.pathname === c.path)
-      : location.pathname === item.path
+  const activeParent = headerNavItems.find((item) =>
+    item.children.some((c) => location.pathname === c.path)
   );
 
   return (
@@ -41,10 +45,8 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
 
         {/* Board nav */}
         <nav className="flex items-center gap-0.5 mr-auto">
-          {boardNavItems.map((item) => {
-            const isActive = item.children
-              ? item.children.some((c) => location.pathname === c.path)
-              : location.pathname === item.path;
+          {headerNavItems.map((item) => {
+            const isActive = item.children.some((c) => location.pathname === c.path);
 
             return (
               <button
@@ -73,9 +75,9 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
         </div>
       </header>
 
-      {/* Secondary nav: show children of active parent, then module items */}
+      {/* Secondary nav: show children of active parent */}
       <div className="h-8 bg-dashboard-nav border-b border-dashboard-panel-border flex items-center px-4 shrink-0">
-        {activeParent?.children && activeParent.children.map((child) => (
+        {activeParent?.children.map((child) => (
           <button
             key={child.path}
             onClick={() => navigate(child.path)}
@@ -87,17 +89,6 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
             )}
           >
             {child.label}
-          </button>
-        ))}
-        {activeParent?.children && (
-          <span className="w-px h-3 bg-dashboard-panel-border mx-1" />
-        )}
-        {moduleNavItems.map((item) => (
-          <button
-            key={item}
-            className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {item}
           </button>
         ))}
       </div>
