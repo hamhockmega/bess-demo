@@ -30,10 +30,8 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
   const navigate = useNavigate();
 
   // Find active top-level item (check children paths too)
-  const activeParent = boardNavItems.find((item) =>
-    item.children
-      ? item.children.some((c) => location.pathname === c.path)
-      : location.pathname === item.path
+  const activeParent = headerNavItems.find((item) =>
+    item.children.some((c) => location.pathname === c.path)
   );
 
   return (
