@@ -2,20 +2,26 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const boardNavItems = [
+const headerNavItems = [
   {
     label: '交易看板',
     path: '/spotMarketBoard',
     children: [
-      { label: '价格分析', path: '/spotMarketBoard' },
-      { label: '现货交易', path: '/mediumAndLongTermTradingInfo' },
+      { label: '现货行情看板', path: '/spotMarketBoard' },
+      { label: '中长期交易信息', path: '/mediumAndLongTermTradingInfo' },
+      { label: '自定义看板', path: '/customBoard' },
+      { label: '数据对比', path: '/dataComparison' },
     ],
   },
-  { label: '收益分析', path: '/customBoard' },
-];
-
-const moduleNavItems = [
-  '现货行情看板', '中长期交易信息', '自定义看板', '数据对比',
+  {
+    label: '价格分析',
+    path: '/shortTermPriceForecast',
+    children: [
+      { label: '短期价格预测', path: '/shortTermPriceForecast' },
+      { label: '电价复盘分析', path: '/priceReview' },
+      { label: '价格基准管理', path: '/priceBenchmark' },
+    ],
+  },
 ];
 
 
