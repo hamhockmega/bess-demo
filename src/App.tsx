@@ -19,7 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/tradingBoard" element={<Navigate to="/spotMarketBoard" replace />} />
-          <Route path="/customBoard" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/customBoard" element={<CustomBoard />} />
           <Route path="/dataComparison" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/shortTermPriceForecast" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/priceReview" element={<Navigate to="/spotMarketBoard" replace />} />
