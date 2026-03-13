@@ -22,7 +22,7 @@ const App = () => (
           <Route path="/tradingBoard" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/customBoard" element={<CustomBoard />} />
           <Route path="/dataComparison" element={<Navigate to="/spotMarketBoard" replace />} />
-          <Route path="/shortTermPriceForecast" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/shortTermPriceForecast" element={<ShortTermPriceForecast />} />
           <Route path="/priceReview" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/priceBenchmark" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/spotMarketBoard" element={<SpotMarketBoard />} />
