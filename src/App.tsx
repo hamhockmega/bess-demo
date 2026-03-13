@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SpotMarketBoard from "./pages/SpotMarketBoard";
 import MediumAndLongTermTradingInfo from "./pages/MediumAndLongTermTradingInfo";
+import CustomBoard from "./pages/CustomBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,7 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/tradingBoard" element={<Navigate to="/spotMarketBoard" replace />} />
-          <Route path="/customBoard" element={<Navigate to="/spotMarketBoard" replace />} />
+          <Route path="/customBoard" element={<CustomBoard />} />
           <Route path="/dataComparison" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/shortTermPriceForecast" element={<Navigate to="/spotMarketBoard" replace />} />
           <Route path="/priceReview" element={<Navigate to="/spotMarketBoard" replace />} />
