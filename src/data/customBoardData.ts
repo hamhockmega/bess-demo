@@ -58,8 +58,8 @@ function generateMultiSeries(
   return series[0].map((p, i) => ({
     time: p.time,
     value: series[0][i].value,
-    value2: series[1]?.value ?? undefined,
-    value3: series[2]?.value ?? undefined,
+    value2: series[1]?.[i]?.value ?? undefined,
+    value3: series[2]?.[i]?.value ?? undefined,
   }));
 }
 
