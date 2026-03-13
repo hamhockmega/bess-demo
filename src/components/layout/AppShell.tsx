@@ -45,10 +45,8 @@ export const AppShell: React.FC<{children: React.ReactNode;}> = ({ children }) =
 
         {/* Board nav */}
         <nav className="flex items-center gap-0.5 mr-auto">
-          {boardNavItems.map((item) => {
-            const isActive = item.children
-              ? item.children.some((c) => location.pathname === c.path)
-              : location.pathname === item.path;
+          {headerNavItems.map((item) => {
+            const isActive = item.children.some((c) => location.pathname === c.path);
 
             return (
               <button
