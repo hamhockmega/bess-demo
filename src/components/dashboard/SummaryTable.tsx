@@ -12,11 +12,11 @@ export const SummaryTable: React.FC<SummaryTableProps> = ({ columns, rows, class
     <div className={cn('overflow-auto', className)}>
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="border-b border-dashboard-panel-border">
+          <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-2 py-1.5 text-left text-muted-foreground font-medium bg-secondary/20"
+                className="px-3 py-2 text-left text-table-header-text font-medium bg-table-header-bg border-b border-table-border"
                 style={col.width ? { width: col.width } : undefined}
               >
                 {col.label}
@@ -26,9 +26,15 @@ export const SummaryTable: React.FC<SummaryTableProps> = ({ columns, rows, class
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-dashboard-panel-border/50 hover:bg-secondary/20 transition-colors">
+            <tr
+              key={i}
+              className={cn(
+                'border-b border-border/50 hover:bg-table-hover transition-colors',
+                i % 2 === 1 ? 'bg-table-alt' : ''
+              )}
+            >
               {columns.map((col) => (
-                <td key={col.key} className="px-2 py-1.5 text-foreground">
+                <td key={col.key} className="px-3 py-2 text-foreground">
                   {row[col.key]}
                 </td>
               ))}
