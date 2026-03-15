@@ -40,17 +40,17 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">运行日：</span>
-      <div className="flex items-center border border-border rounded-sm overflow-hidden">
+      <span className="text-xs text-muted-foreground font-medium">运行日：</span>
+      <div className="flex items-center bg-secondary p-0.5 rounded-md overflow-hidden">
         {(['多日', '段'] as const).map((mode) => (
           <button
             key={mode}
             onClick={() => onDateModeChange(mode)}
             className={cn(
-              'px-3 py-0.5 text-xs transition-colors',
+              'px-3 py-1 text-xs font-medium rounded-md transition-all',
               dateMode === mode
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary/40 text-muted-foreground hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card'
             )}
           >
             {mode}
@@ -63,9 +63,9 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-xs gap-1 border-border min-w-[160px] justify-start"
+            className="h-8 text-xs gap-1.5 border-border min-w-[160px] justify-start bg-card font-normal"
           >
-            <CalendarIcon className="w-3 h-3" />
+            <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
             {displayText()}
           </Button>
         </PopoverTrigger>

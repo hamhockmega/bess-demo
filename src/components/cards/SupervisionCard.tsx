@@ -4,9 +4,15 @@ import { supervisionData } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
 const STATUS_STYLES = {
-  '正常': 'bg-dashboard-green/10 text-dashboard-green border-dashboard-green/30',
-  '预警': 'bg-dashboard-orange/10 text-dashboard-orange border-dashboard-orange/30',
-  '异常': 'bg-dashboard-red/10 text-dashboard-red border-dashboard-red/30',
+  '正常': 'bg-dashboard-green-bg border-dashboard-green/20',
+  '预警': 'bg-dashboard-orange-bg border-dashboard-orange/20',
+  '异常': 'bg-dashboard-red-bg border-dashboard-red/20',
+};
+
+const STATUS_TEXT = {
+  '正常': 'text-dashboard-green',
+  '预警': 'text-dashboard-orange',
+  '异常': 'text-dashboard-red',
 };
 
 const STATUS_DOT = {
@@ -18,27 +24,27 @@ const STATUS_DOT = {
 export const SupervisionCard: React.FC = () => {
   return (
     <PanelCard title="事前监管" className="h-full">
-      <div className="grid grid-cols-2 gap-2 h-full content-start">
+      <div className="grid grid-cols-2 gap-3 h-full content-start">
         {supervisionData.map((item) => (
           <div
             key={item.indicator}
             className={cn(
-              'border rounded-sm p-2.5 transition-all hover:shadow-md',
+              'border rounded-lg p-3.5 transition-all hover:shadow-md',
               STATUS_STYLES[item.status]
             )}
           >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium">{item.indicator}</span>
-              <div className="flex items-center gap-1">
-                <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT[item.status])} />
-                <span className="text-[10px]">{item.status}</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className={cn('text-xs font-semibold', STATUS_TEXT[item.status])}>{item.indicator}</span>
+              <div className="flex items-center gap-1.5">
+                <span className={cn('w-2 h-2 rounded-full', STATUS_DOT[item.status])} />
+                <span className={cn('text-[10px] font-medium', STATUS_TEXT[item.status])}>{item.status}</span>
               </div>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-lg font-bold tabular-nums">{item.value}</span>
-              <span className="text-[10px] opacity-70">阈值: {item.threshold}</span>
+              <span className={cn('text-xl font-bold tabular-nums', STATUS_TEXT[item.status])}>{item.value}</span>
+              <span className="text-[10px] text-muted-foreground">阈值: {item.threshold}</span>
             </div>
-            <div className="text-[10px] mt-1 opacity-60">{item.description}</div>
+            <div className="text-[10px] mt-1.5 text-muted-foreground">{item.description}</div>
           </div>
         ))}
       </div>

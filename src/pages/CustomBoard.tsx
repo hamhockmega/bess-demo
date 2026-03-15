@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PanelCard } from '@/components/dashboard/PanelCard';
-import { Bookmark, Save, FilePlus, Filter, Search } from 'lucide-react';
+import { Save, FilePlus, Filter, Search } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -17,7 +17,6 @@ import { SaveAsDialog } from '@/components/custom-board/SaveAsDialog';
 import { PanelChart } from '@/components/custom-board/PanelChart';
 import { PANEL_DATA_GENERATORS, ChartDataPoint } from '@/data/customBoardData';
 
-/* ── 全部可用面板 ── */
 const ALL_PANELS = [
   '节点电价(门前节点)', '系统负荷', '联络线受电负荷', '新能源出力', '抽蓄',
   '储能出力', '正负备用', '事前监管', '开停机组数量（市场化）',
@@ -50,7 +49,6 @@ const PANEL_SUB_ITEMS: Record<string, string[]> = {
 
 const TIME_PERIODS = ['实时', '日前', '预测(周前)', '预测(月前)', 'D-1', 'D-2'];
 
-/* ── 看板方案 (persisted in localStorage) ── */
 const STORAGE_KEY = 'custom-board-templates';
 
 function loadTemplates(): Record<string, PanelName[]> {
@@ -70,14 +68,14 @@ function saveTemplates(templates: Record<string, PanelName[]>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
 }
 
-/* ── 小组件：面板筛选器 ── */
+/* Panel filter dropdown */
 const PanelFilter: React.FC<{
   options: string[];
   selected: string;
   onChange: (v: string) => void;
 }> = ({ options, selected, onChange }) => (
   <Select value={selected} onValueChange={onChange}>
-    <SelectTrigger className="h-6 min-w-[90px] max-w-[140px] text-xs bg-secondary/40 border-border px-2 gap-1">
+    <SelectTrigger className="h-7 min-w-[90px] max-w-[140px] text-xs bg-secondary border-border px-2 gap-1 rounded-md">
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
@@ -88,9 +86,7 @@ const PanelFilter: React.FC<{
   </Select>
 );
 
-/* ── 主组件 ── */
 const CustomBoard: React.FC = () => {
-  // Date state
   const [dateMode, setDateMode] = useState<'多日' | '段'>('段');
   const [selectedDates, setSelectedDates] = useState<Date[]>([new Date('2025-07-15')]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -98,24 +94,19 @@ const CustomBoard: React.FC = () => {
     to: new Date('2025-07-31'),
   });
 
-  // Template state
   const [templates, setTemplates] = useState(loadTemplates);
   const [template, setTemplate] = useState('通用模板');
   const [visiblePanels, setVisiblePanels] = useState<PanelName[]>(templates['通用模板']);
   const [saveAsOpen, setSaveAsOpen] = useState(false);
 
-  // Panel filter state
   const [panelSubItem, setPanelSubItem] = useState<Record<string, string>>({});
   const [panelTimePeriod, setPanelTimePeriod] = useState<Record<string, string>>({});
 
-  // Data selector popover
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [pendingPanels, setPendingPanels] = useState<PanelName[]>(visiblePanels);
 
-  // Query version (incremented on 查询 click to trigger data refresh)
   const [queryVersion, setQueryVersion] = useState(0);
 
-  // Compute date strings for data generation
   const queryDates = useMemo(() => {
     if (dateMode === '多日') {
       return selectedDates.map((d) => format(d, 'yyyy-MM-dd'));
@@ -131,7 +122,6 @@ const CustomBoard: React.FC = () => {
     return [format(new Date(), 'yyyy-MM-dd')];
   }, [dateMode, selectedDates, dateRange, queryVersion]);
 
-  // Generate chart data per panel
   const panelData = useMemo(() => {
     const result: Record<string, ChartDataPoint[]> = {};
     visiblePanels.forEach((panel) => {
@@ -143,7 +133,6 @@ const CustomBoard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visiblePanels, queryVersion, queryDates]);
 
-  // Template handlers
   const handleTemplateChange = (v: string) => {
     setTemplate(v);
     const panels = templates[v] || templates['通用模板'];
@@ -170,7 +159,6 @@ const CustomBoard: React.FC = () => {
     toast.success(`新方案 "${name}" 已保存`);
   };
 
-  // Data selector
   const openSelector = () => {
     setPendingPanels([...visiblePanels]);
     setSelectorOpen(true);
@@ -199,9 +187,9 @@ const CustomBoard: React.FC = () => {
 
   return (
     <AppShell>
-      <div className="flex flex-col h-[calc(100vh-72px)] p-3 gap-3">
-        {/* ── 顶部工具栏 ── */}
-        <div className="flex items-center gap-3 bg-card border border-border rounded-sm px-3 py-2 shrink-0 flex-wrap">
+      <div className="flex flex-col h-[calc(100vh-88px)] p-5 gap-4">
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3 panel-card shrink-0 flex-wrap">
           <DateSelector
             dateMode={dateMode}
             onDateModeChange={setDateMode}
@@ -211,54 +199,52 @@ const CustomBoard: React.FC = () => {
             onDateRangeChange={setDateRange}
           />
 
-          {/* 查询 */}
-          <Button size="sm" className="h-7 text-xs gap-1" onClick={handleQuery}>
-            <Search className="w-3 h-3" />
+          <Button size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleQuery}>
+            <Search className="w-3.5 h-3.5" />
             查询
           </Button>
 
-          {/* 数据选择 */}
           <Popover open={selectorOpen} onOpenChange={setSelectorOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs gap-1 border-border"
+                className="h-8 text-xs gap-1.5 border-border bg-card"
                 onClick={openSelector}
               >
-                <Filter className="w-3 h-3" />
+                <Filter className="w-3.5 h-3.5" />
                 数据选择
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[320px] p-3" align="start">
-              <div className="text-xs font-medium text-foreground mb-2">选择展示的图表面板</div>
-              <div className="grid grid-cols-2 gap-1.5 max-h-[320px] overflow-y-auto">
+            <PopoverContent className="w-[340px] p-4" align="start">
+              <div className="text-sm font-semibold text-foreground mb-3">选择展示的图表面板</div>
+              <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
                 {ALL_PANELS.map((panel) => (
                   <label
                     key={panel}
-                    className="flex items-center gap-1.5 text-xs text-card-foreground cursor-pointer hover:text-foreground py-0.5"
+                    className="flex items-center gap-2 text-xs text-foreground cursor-pointer hover:bg-secondary rounded-md px-2 py-1.5 transition-colors"
                   >
                     <Checkbox
                       checked={pendingPanels.includes(panel)}
                       onCheckedChange={() => togglePending(panel)}
-                      className="h-3.5 w-3.5"
+                      className="h-4 w-4"
                     />
                     <span className="truncate">{panel}</span>
                   </label>
                 ))}
               </div>
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                 <button
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-xs text-primary hover:text-primary/80 font-medium"
                   onClick={() => setPendingPanels([...ALL_PANELS])}
                 >
                   全选
                 </button>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setSelectorOpen(false)}>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSelectorOpen(false)}>
                     取消
                   </Button>
-                  <Button size="sm" className="h-6 text-xs" onClick={applySelection}>
+                  <Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90" onClick={applySelection}>
                     确定
                   </Button>
                 </div>
@@ -266,11 +252,11 @@ const CustomBoard: React.FC = () => {
             </PopoverContent>
           </Popover>
 
-          {/* 看板方案 */}
+          {/* Template controls */}
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-muted-foreground">看板方案：</span>
+            <span className="text-xs text-muted-foreground font-medium">看板方案：</span>
             <Select value={template} onValueChange={handleTemplateChange}>
-              <SelectTrigger className="h-7 w-[130px] text-xs bg-secondary/50 border-border">
+              <SelectTrigger className="h-8 w-[130px] text-xs bg-card border-border rounded-md">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -279,19 +265,19 @@ const CustomBoard: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border" onClick={handleSave}>
-              <Save className="w-3 h-3" />
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border" onClick={handleSave}>
+              <Save className="w-3.5 h-3.5" />
               保存
             </Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border" onClick={() => setSaveAsOpen(true)}>
-              <FilePlus className="w-3 h-3" />
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border" onClick={() => setSaveAsOpen(true)}>
+              <FilePlus className="w-3.5 h-3.5" />
               另存为
             </Button>
           </div>
         </div>
 
-        {/* ── 图表面板 ── */}
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
+        {/* Chart panels */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
           {visiblePanels.map((panelName) => {
             const subItems = PANEL_SUB_ITEMS[panelName] || [];
             const data = panelData[panelName] || [];
@@ -314,7 +300,6 @@ const CustomBoard: React.FC = () => {
                       selected={getTimePeriod(panelName)}
                       onChange={(v) => setPanelTimePeriod((prev) => ({ ...prev, [panelName]: v }))}
                     />
-                    <Bookmark className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
                   </div>
                 }
               >

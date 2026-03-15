@@ -2,64 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 220 25% 8%;
-    --foreground: 195 100% 85%;
+    /* iWatt Brand Palette */
+    --brand-primary: 140 42% 47%;       /* #49A85A */
+    --brand-accent: 100 55% 55%;        /* #7BCB4E */
+    --brand-deep: 150 59% 30%;          /* #1F7A46 */
+    --brand-dark: 155 53% 22%;          /* #145A38 */
 
-    --card: 215 30% 12%;
-    --card-foreground: 195 60% 80%;
+    /* Neutral Palette */
+    --background: 140 8% 96%;           /* #F5F7F6 */
+    --foreground: 150 15% 14%;          /* #1F2A24 */
 
-    --popover: 215 30% 14%;
-    --popover-foreground: 195 60% 80%;
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 150 15% 14%;     /* #1F2A24 */
 
-    --primary: 185 80% 50%;
-    --primary-foreground: 220 25% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 15% 14%;
 
-    --secondary: 215 25% 18%;
-    --secondary-foreground: 195 40% 75%;
+    --primary: 140 42% 47%;             /* #49A85A */
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 215 20% 15%;
-    --muted-foreground: 215 15% 50%;
+    --secondary: 140 10% 95%;           /* #F0F4F1 */
+    --secondary-foreground: 150 15% 14%;
 
-    --accent: 185 80% 50%;
-    --accent-foreground: 220 25% 8%;
+    --muted: 140 10% 95%;              /* #F0F4F1 */
+    --muted-foreground: 144 7% 48%;    /* #8A978F */
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 100 55% 55%;             /* #7BCB4E */
+    --accent-foreground: 155 53% 22%;
 
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
-    --ring: 185 80% 50%;
+    --destructive: 0 52% 53%;          /* #C94747 */
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.25rem;
+    --border: 140 10% 87%;             /* #DDE5DF */
+    --input: 140 10% 87%;
+    --ring: 140 42% 47%;
 
-    /* Dashboard specific */
-    --dashboard-bg: 220 30% 6%;
-    --dashboard-header: 215 35% 10%;
-    --dashboard-nav: 215 30% 14%;
-    --dashboard-cyan: 185 80% 50%;
-    --dashboard-cyan-dim: 185 60% 35%;
-    --dashboard-cyan-glow: 185 100% 60%;
-    --dashboard-green: 145 60% 45%;
-    --dashboard-red: 0 70% 55%;
-    --dashboard-orange: 30 80% 55%;
-    --dashboard-yellow: 45 90% 60%;
-    --dashboard-purple: 270 50% 55%;
-    --dashboard-text-bright: 0 0% 95%;
-    --dashboard-text-dim: 215 15% 45%;
-    --dashboard-panel-border: 215 30% 22%;
+    --radius: 0.5rem;
 
-    --sidebar-background: 215 35% 10%;
-    --sidebar-foreground: 195 60% 80%;
-    --sidebar-primary: 185 80% 50%;
-    --sidebar-primary-foreground: 220 25% 8%;
-    --sidebar-accent: 215 25% 18%;
-    --sidebar-accent-foreground: 195 40% 75%;
-    --sidebar-border: 215 25% 20%;
-    --sidebar-ring: 185 80% 50%;
+    /* Dashboard / iWatt semantic tokens */
+    --dashboard-bg: 140 8% 96%;
+    --dashboard-header: 155 53% 22%;     /* Dark Anchor Green */
+    --dashboard-header-gradient: linear-gradient(135deg, hsl(155, 53%, 22%), hsl(150, 59%, 30%));
+    --dashboard-nav: 0 0% 100%;
+
+    --dashboard-green: 145 63% 33%;     /* #1F8A4C - Success */
+    --dashboard-green-bg: 140 52% 94%;  /* #EAF7EC */
+    --dashboard-red: 0 52% 53%;         /* #C94747 - Error/Risk */
+    --dashboard-red-bg: 0 80% 96%;      /* #FDECEC */
+    --dashboard-orange: 36 72% 44%;     /* #C97A16 - Warning */
+    --dashboard-orange-bg: 33 100% 95%; /* #FFF4E8 */
+    --dashboard-blue: 210 58% 44%;      /* #2F6FB3 - Info */
+    --dashboard-blue-bg: 214 100% 96%;  /* #EAF3FF */
+    --dashboard-slate: 200 18% 38%;     /* #4E6572 - Slate Blue Grey */
+    --dashboard-purple: 265 22% 54%;    /* #7D6FA3 */
+
+    --dashboard-text-bright: 150 15% 14%;
+    --dashboard-text-secondary: 148 8% 40%;  /* #617066 */
+    --dashboard-text-dim: 144 7% 48%;
+    --dashboard-panel-border: 140 10% 87%;
+    --dashboard-soft-border: 140 8% 91%;     /* #E7ECE8 */
+
+    /* Chart series colors */
+    --chart-primary: 140 42% 47%;
+    --chart-accent: 100 55% 55%;
+    --chart-deep: 150 59% 30%;
+    --chart-light: 107 52% 66%;         /* #9AD97B */
+    --chart-blue: 207 35% 47%;          /* #4E7FA3 */
+    --chart-amber: 35 73% 54%;          /* #E39B2E */
+    --chart-red: 0 58% 60%;             /* #D85C5C */
+    --chart-purple: 265 22% 54%;        /* #7D6FA3 */
+
+    /* Table */
+    --table-header-bg: 138 12% 95%;     /* #F2F6F3 */
+    --table-header-text: 144 10% 29%;   /* #445249 */
+    --table-border: 140 10% 87%;        /* #DCE5DE */
+    --table-hover: 140 20% 96%;
+    --table-alt: 140 10% 98%;
+
+    --sidebar-background: 155 53% 22%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 100 55% 55%;
+    --sidebar-primary-foreground: 155 53% 22%;
+    --sidebar-accent: 150 59% 30%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 155 40% 28%;
+    --sidebar-ring: 140 42% 47%;
   }
 }
 
@@ -70,7 +101,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
     font-size: 13px;
   }
 }
@@ -81,20 +112,22 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(var(--dashboard-bg));
+  background: hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--dashboard-cyan-dim));
+  background: hsl(var(--dashboard-text-dim));
 }
 
-/* Dashboard panel glow */
-.panel-glow {
-  box-shadow: 0 0 1px hsl(var(--dashboard-cyan) / 0.3),
-              inset 0 1px 0 hsl(var(--dashboard-cyan) / 0.1);
+/* Panel card shadow */
+.panel-card {
+  box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.04), 0 1px 2px -1px hsl(0 0% 0% / 0.04);
+}
+.panel-card:hover {
+  box-shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.06), 0 2px 4px -2px hsl(0 0% 0% / 0.04);
 }
 
 /* Tab active indicator */
@@ -108,6 +141,27 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: hsl(var(--dashboard-cyan));
-  box-shadow: 0 0 6px hsl(var(--dashboard-cyan-glow) / 0.5);
+  background: hsl(var(--primary));
+  border-radius: 1px 1px 0 0;
+}
+
+/* Status pills */
+.status-pill {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+}
+.status-pill-success {
+  background: hsl(var(--dashboard-green-bg));
+  color: hsl(var(--dashboard-green));
+}
+.status-pill-warning {
+  background: hsl(var(--dashboard-orange-bg));
+  color: hsl(var(--dashboard-orange));
+}
+.status-pill-error {
+  background: hsl(var(--dashboard-red-bg));
+  color: hsl(var(--dashboard-red));
+}
+.status-pill-info {
+  background: hsl(var(--dashboard-blue-bg));
+  color: hsl(var(--dashboard-blue));
 }

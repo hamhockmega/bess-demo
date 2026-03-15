@@ -9,6 +9,8 @@ import { SupplyDemandCard } from '@/components/cards/SupplyDemandCard';
 import { SupervisionCard } from '@/components/cards/SupervisionCard';
 import { ClearingComparisonCard } from '@/components/cards/ClearingComparisonCard';
 import { useDashboardStore, type MainSection } from '@/store/dashboardState';
+import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const MAIN_SECTIONS: MainSection[] = [
   '行情趋势', '典型曲线', '峰谷及杂项单价', '市场供需情况', '事前监管', '出清前后对比'
@@ -33,22 +35,22 @@ const SpotMarketBoard: React.FC = () => {
 
   return (
     <AppShell>
-      <div className="flex flex-col h-[calc(100vh-72px)] p-3 gap-3">
+      <div className="flex flex-col h-[calc(100vh-88px)] p-5 gap-4">
         {/* 顶部查询区 */}
-        <div className="flex items-center gap-3 bg-card border border-dashboard-panel-border rounded-sm px-3 py-2 panel-glow shrink-0">
+        <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3 panel-card shrink-0 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">日期:</span>
+            <span className="text-xs text-muted-foreground font-medium">日期:</span>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-secondary/50 border border-dashboard-panel-border rounded-sm px-2 py-0.5 text-xs text-foreground outline-none focus:border-dashboard-cyan"
+              className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">月:</span>
-            <select className="bg-secondary/50 border border-dashboard-panel-border rounded-sm px-2 py-0.5 text-xs text-foreground outline-none focus:border-dashboard-cyan">
+            <span className="text-xs text-muted-foreground font-medium">月:</span>
+            <select className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
               <option>3月</option>
               <option>2月</option>
               <option>1月</option>
@@ -56,8 +58,8 @@ const SpotMarketBoard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">段:</span>
-            <select className="bg-secondary/50 border border-dashboard-panel-border rounded-sm px-2 py-0.5 text-xs text-foreground outline-none focus:border-dashboard-cyan">
+            <span className="text-xs text-muted-foreground font-medium">段:</span>
+            <select className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
               <option>全天</option>
               <option>峰段</option>
               <option>谷段</option>
@@ -66,20 +68,22 @@ const SpotMarketBoard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">至:</span>
+            <span className="text-xs text-muted-foreground font-medium">至:</span>
             <input
               type="date"
               defaultValue="2026-03-08"
-              className="bg-secondary/50 border border-dashboard-panel-border rounded-sm px-2 py-0.5 text-xs text-foreground outline-none focus:border-dashboard-cyan"
+              className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
             />
           </div>
 
-          <button
+          <Button
+            size="sm"
             onClick={executeQuery}
-            className="px-3 py-1 text-xs bg-dashboard-cyan/20 text-dashboard-cyan border border-dashboard-cyan/40 rounded-sm hover:bg-dashboard-cyan/30 transition-colors"
+            className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
           >
+            <Search className="w-3.5 h-3.5" />
             查询
-          </button>
+          </Button>
 
           <div className="ml-auto">
             <IntervalSwitch value={selectedInterval} onChange={setSelectedInterval} />
