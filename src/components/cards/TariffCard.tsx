@@ -7,7 +7,7 @@ import { tariffCoefficients, tariffMiscPrices } from '@/data/mockData';
 const MONTHS = tariffCoefficients.map(r => r.month);
 const PERIOD_COLORS: Record<string, string> = {
   '深谷': 'text-dashboard-purple',
-  '谷': 'text-dashboard-cyan',
+  '谷': 'text-dashboard-blue',
   '平': 'text-foreground',
   '峰': 'text-dashboard-orange',
   '尖峰': 'text-dashboard-red',
@@ -27,7 +27,7 @@ export const TariffCard: React.FC = () => {
   ];
 
   const coeffRows = tariffCoefficients.map(r => ({
-    month: <span className={r.month === selectedMonth ? 'text-dashboard-cyan font-bold' : ''}>{r.month}</span>,
+    month: <span className={r.month === selectedMonth ? 'text-primary font-semibold' : ''}>{r.month}</span>,
     深谷: <span className={PERIOD_COLORS['深谷']}>{r.深谷}</span>,
     谷: <span className={PERIOD_COLORS['谷']}>{r.谷}</span>,
     平: <span className={PERIOD_COLORS['平']}>{r.平}</span>,
@@ -42,8 +42,8 @@ export const TariffCard: React.FC = () => {
   ];
 
   const miscRows = tariffMiscPrices.map(r => ({
-    item: r.item === '合计' ? <span className="font-bold text-dashboard-cyan">{r.item}</span> : r.item,
-    value: r.item === '合计' ? <span className="font-bold text-dashboard-cyan">{r.value}</span> : r.value,
+    item: r.item === '合计' ? <span className="font-semibold text-primary">{r.item}</span> : r.item,
+    value: r.item === '合计' ? <span className="font-semibold text-primary">{r.value}</span> : r.value,
     unit: r.unit,
   }));
 
@@ -59,19 +59,19 @@ export const TariffCard: React.FC = () => {
       }
       className="h-full"
     >
-      <div className="flex flex-col h-full gap-2">
+      <div className="flex flex-col h-full gap-3">
         {activeView === '系数' ? (
           <>
-            <div className="text-xs text-muted-foreground mb-1">用户侧分时电价峰谷系数</div>
+            <div className="text-xs text-muted-foreground font-medium mb-1">用户侧分时电价峰谷系数</div>
             <div className="flex gap-1 mb-2 flex-wrap">
               {MONTHS.map(m => (
                 <button
                   key={m}
                   onClick={() => setSelectedMonth(m)}
-                  className={`px-1.5 py-0.5 text-xs rounded-sm transition-all ${
+                  className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
                     selectedMonth === m
-                      ? 'bg-dashboard-cyan/20 text-dashboard-cyan'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`}
                 >
                   {m}
@@ -82,7 +82,7 @@ export const TariffCard: React.FC = () => {
           </>
         ) : (
           <>
-            <div className="text-xs text-muted-foreground mb-1">用户侧杂项电费单价合计 (元/MWh)</div>
+            <div className="text-xs text-muted-foreground font-medium mb-1">用户侧杂项电费单价合计 (元/MWh)</div>
             <SummaryTable columns={miscColumns} rows={miscRows} className="flex-1" />
           </>
         )}

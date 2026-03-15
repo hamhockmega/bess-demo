@@ -10,13 +10,7 @@ import {
   Legend,
 } from 'recharts';
 import { ChartDataPoint, PANEL_UNITS, PANEL_SERIES_LABELS } from '@/data/customBoardData';
-
-const COLORS = [
-  'hsl(185, 80%, 50%)',   // cyan
-  'hsl(145, 60%, 45%)',   // green
-  'hsl(30, 80%, 55%)',    // orange
-  'hsl(270, 50%, 55%)',   // purple
-];
+import { CHART_PALETTE, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 
 interface PanelChartProps {
   panelName: string;
@@ -31,50 +25,42 @@ export const PanelChart: React.FC<PanelChartProps> = ({ panelName, data }) => {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 25%, 20%)" />
+        <CartesianGrid {...GRID_STYLE} />
         <XAxis
           dataKey="time"
-          tick={{ fontSize: 10, fill: 'hsl(215, 15%, 50%)' }}
+          tick={AXIS_STYLE.tick}
           interval={11}
-          axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
+          axisLine={AXIS_STYLE.axisLine}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: 'hsl(215, 15%, 50%)' }}
-          axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
+          tick={AXIS_STYLE.tick}
+          axisLine={AXIS_STYLE.axisLine}
           tickLine={false}
           width={55}
-          label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: 'hsl(215, 15%, 50%)' } }}
+          label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#8A978F' } }}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(215, 30%, 14%)',
-            border: '1px solid hsl(215, 25%, 20%)',
-            borderRadius: '4px',
-            fontSize: 11,
-            color: 'hsl(195, 60%, 80%)',
-          }}
+          {...TOOLTIP_STYLE}
           formatter={(val: number) => [`${val} ${unit}`, '']}
         />
         {hasMulti && seriesLabels && (
-          <Legend
-            wrapperStyle={{ fontSize: 10, color: 'hsl(215, 15%, 50%)' }}
-          />
+          <Legend {...LEGEND_STYLE} />
         )}
         <Line
           type="monotone"
           dataKey="value"
           name={seriesLabels?.[0] || panelName}
-          stroke={COLORS[0]}
+          stroke={CHART_PALETTE[0]}
           dot={false}
-          strokeWidth={1.5}
+          strokeWidth={2}
         />
         {hasMulti && (
           <Line
             type="monotone"
             dataKey="value2"
             name={seriesLabels?.[1] || '系列2'}
-            stroke={COLORS[1]}
+            stroke={CHART_PALETTE[1]}
             dot={false}
             strokeWidth={1.5}
           />
@@ -84,7 +70,7 @@ export const PanelChart: React.FC<PanelChartProps> = ({ panelName, data }) => {
             type="monotone"
             dataKey="value3"
             name={seriesLabels?.[2] || '系列3'}
-            stroke={COLORS[2]}
+            stroke={CHART_PALETTE[2]}
             dot={false}
             strokeWidth={1.5}
           />

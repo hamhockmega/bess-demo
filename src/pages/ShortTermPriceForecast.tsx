@@ -11,6 +11,7 @@ import {
   BarChart, Bar, Area, AreaChart,
 } from 'recharts';
 import { fetchForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
+import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE, VALUE_COLORS } from '@/lib/chartTheme';
 
 type Side = 'generation' | 'consumption';
 
@@ -33,7 +34,7 @@ export default function ShortTermPriceForecast() {
   const [queryVersion, setQueryVersion] = useState(0);
 
   const data: ForecastResult = useMemo(() => {
-    void queryVersion; // dependency
+    void queryVersion;
     return fetchForecastData(
       format(dateRange.from, 'yyyy-MM-dd'),
       format(dateRange.to, 'yyyy-MM-dd'),
@@ -41,7 +42,6 @@ export default function ShortTermPriceForecast() {
     );
   }, [dateRange, side, queryVersion]);
 
-  // Chart data: pick first day for intraday chart
   const intradayData = useMemo(() => {
     if (data.points.length === 0) return [];
     const firstDate = data.points[0].date;
@@ -50,78 +50,64 @@ export default function ShortTermPriceForecast() {
 
   return (
     <AppShell>
-      <div className="p-4 space-y-4">
+      <div className="p-5 space-y-5">
+        {/* Page title */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-foreground">短期价格预测</h1>
+        </div>
+
         {/* Toolbar */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs text-muted-foreground">日期：</span>
+        <div className="flex items-center gap-3 flex-wrap bg-card border border-border rounded-lg px-4 py-3 panel-card">
+          <span className="text-xs text-muted-foreground font-medium">日期：</span>
           <DateRangePicker value={dateRange} onChange={setDateRange} />
           <Button
             size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+            className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => setQueryVersion((v) => v + 1)}
           >
-            <Search className="w-3 h-3" /> 查询
+            <Search className="w-3.5 h-3.5" /> 查询
           </Button>
-        </div>
 
-        {/* Side tabs */}
-        <div className="flex items-center gap-1 border-b border-border pb-0">
-          {(['generation', 'consumption'] as Side[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSide(s)}
-              className={`px-4 py-1.5 text-xs transition-colors relative ${
-                side === s
-                  ? 'text-primary tab-active-indicator'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {SIDE_LABELS[s]}
-            </button>
-          ))}
+          {/* Side toggle */}
+          <div className="flex items-center gap-1 ml-auto bg-secondary p-1 rounded-lg">
+            {(['generation', 'consumption'] as Side[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSide(s)}
+                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  side === s
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card'
+                }`}
+              >
+                {SIDE_LABELS[s]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Section 1: 价格预测结果 */}
-        <PanelCard title={`价格预测结果(${PRICE_LABELS[side]})`}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Accuracy KPI */}
-            <div className="flex flex-col items-center justify-center py-6">
-              <span className="text-xs text-muted-foreground mb-2">日前预测值准确率</span>
-              <span className="text-3xl font-bold text-foreground tabular-nums">{data.accuracy}%</span>
-              <span className="text-xs text-muted-foreground mt-1">所选时段</span>
+            <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
+              <span className="text-xs text-muted-foreground mb-2 font-medium">日前预测值准确率</span>
+              <span className="text-4xl font-bold text-primary tabular-nums">{data.accuracy}%</span>
+              <span className="text-xs text-muted-foreground mt-2">所选时段</span>
             </div>
             {/* Intraday chart */}
-            <div className="h-52">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={intradayData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 25%, 20%)" />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    interval={11}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
+                  <CartesianGrid {...GRID_STYLE} />
+                  <XAxis dataKey="time" tick={AXIS_STYLE.tick} interval={11} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50}
+                    label={{ value: '元/MWh', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8A978F' } }}
                   />
-                  <YAxis
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
-                    width={50}
-                    label={{ value: '元/MWh', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: 'hsl(215, 15%, 50%)' } }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(215, 30%, 14%)',
-                      border: '1px solid hsl(215, 25%, 20%)',
-                      borderRadius: '4px',
-                      fontSize: 11,
-                      color: 'hsl(195, 60%, 80%)',
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Line type="monotone" dataKey="dayAhead" name="日前电价(预测)" stroke="hsl(185, 80%, 50%)" dot={false} strokeWidth={1.5} />
-                  <Line type="monotone" dataKey="realTime" name="实时电价(预测)" stroke="hsl(30, 80%, 55%)" dot={false} strokeWidth={1.5} />
+                  <Tooltip {...TOOLTIP_STYLE} />
+                  <Legend {...LEGEND_STYLE} />
+                  <Line type="monotone" dataKey="dayAhead" name="日前电价(预测)" stroke={CHART_COLORS.deep} dot={false} strokeWidth={2} />
+                  <Line type="monotone" dataKey="realTime" name="实时电价(预测)" stroke={CHART_COLORS.amber} dot={false} strokeWidth={1.5} strokeDasharray="4 3" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -131,7 +117,7 @@ export default function ShortTermPriceForecast() {
         {/* Section 2: 日均价 */}
         <PanelCard title="日均价 (元/MWh)">
           <div className="space-y-6">
-            {/* Summary blocks — 2x2 grid */}
+            {/* Summary blocks */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {data.summaries.map((s, i) => (
                 <SummaryBlock key={i} summary={s} />
@@ -141,33 +127,13 @@ export default function ShortTermPriceForecast() {
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.dailyAvg} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 25%, 20%)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
-                    width={50}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(215, 30%, 14%)',
-                      border: '1px solid hsl(215, 25%, 20%)',
-                      borderRadius: '4px',
-                      fontSize: 11,
-                      color: 'hsl(195, 60%, 80%)',
-                    }}
-                    formatter={(val: number) => [`${val.toFixed(2)} 元/MWh`]}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Bar dataKey="dayAheadAvg" name="日前均价" fill="hsl(185, 80%, 50%)" opacity={0.8} />
-                  <Bar dataKey="realTimeAvg" name="实时均价" fill="hsl(30, 80%, 55%)" opacity={0.8} />
+                  <CartesianGrid {...GRID_STYLE} />
+                  <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
+                  <Tooltip {...TOOLTIP_STYLE} formatter={(val: number) => [`${val.toFixed(2)} 元/MWh`]} />
+                  <Legend {...LEGEND_STYLE} />
+                  <Bar dataKey="dayAheadAvg" name="日前均价" fill={CHART_COLORS.primary} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="realTimeAvg" name="实时均价" fill={CHART_COLORS.blue} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -177,14 +143,12 @@ export default function ShortTermPriceForecast() {
         {/* Section 3: 趋势分析 */}
         <PanelCard title="趋势分析">
           <div className="space-y-4">
-            {/* Spread (价差) trend */}
             <div className="grid grid-cols-3 gap-3 text-center">
               <TrendKpi label="最大价差" value={computeMaxSpread(data)} unit="元/MWh" />
               <TrendKpi label="日前均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.dayAheadAvg))} unit="" trend />
               <TrendKpi label="实时均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.realTimeAvg))} unit="" trend />
             </div>
-            {/* Area chart: spread over time */}
-            <div className="h-52">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={data.dailyAvg.map((d) => ({
@@ -195,33 +159,14 @@ export default function ShortTermPriceForecast() {
                   }))}
                   margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 25%, 20%)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 9, fill: 'hsl(215, 15%, 50%)' }}
-                    axisLine={{ stroke: 'hsl(215, 25%, 20%)' }}
-                    tickLine={false}
-                    width={50}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(215, 30%, 14%)',
-                      border: '1px solid hsl(215, 25%, 20%)',
-                      borderRadius: '4px',
-                      fontSize: 11,
-                      color: 'hsl(195, 60%, 80%)',
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                  <Area type="monotone" dataKey="dayAheadAvg" name="日前均价" stroke="hsl(185, 80%, 50%)" fill="hsl(185, 80%, 50%)" fillOpacity={0.15} />
-                  <Area type="monotone" dataKey="realTimeAvg" name="实时均价" stroke="hsl(30, 80%, 55%)" fill="hsl(30, 80%, 55%)" fillOpacity={0.15} />
-                  <Area type="monotone" dataKey="spread" name="日前-实时价差" stroke="hsl(270, 50%, 55%)" fill="hsl(270, 50%, 55%)" fillOpacity={0.1} />
+                  <CartesianGrid {...GRID_STYLE} />
+                  <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
+                  <Tooltip {...TOOLTIP_STYLE} />
+                  <Legend {...LEGEND_STYLE} />
+                  <Area type="monotone" dataKey="dayAheadAvg" name="日前均价" stroke={CHART_COLORS.primary} fill={CHART_COLORS.primary} fillOpacity={0.1} />
+                  <Area type="monotone" dataKey="realTimeAvg" name="实时均价" stroke={CHART_COLORS.blue} fill={CHART_COLORS.blue} fillOpacity={0.1} />
+                  <Area type="monotone" dataKey="spread" name="日前-实时价差" stroke={CHART_COLORS.purple} fill={CHART_COLORS.purple} fillOpacity={0.08} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -236,19 +181,19 @@ export default function ShortTermPriceForecast() {
 
 function SummaryBlock({ summary }: { summary: PriceSummary }) {
   return (
-    <div className="bg-secondary/30 border border-border rounded-sm p-3 space-y-2">
-      <div className="text-xs font-medium text-foreground">{summary.label}</div>
+    <div className="bg-secondary border border-border rounded-lg p-4 space-y-3">
+      <div className="text-sm font-semibold text-foreground">{summary.label}</div>
       <div className="text-2xl font-bold text-primary tabular-nums">{summary.avg.toFixed(4)}</div>
-      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-        <div>
-          <span className="text-dashboard-red mr-1">最高</span>
-          <span className="text-foreground tabular-nums">{summary.max.toFixed(4)}</span>
-          <div className="text-[10px] mt-0.5">{summary.maxTime}</div>
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="bg-card rounded-md p-2 border border-border">
+          <span className="text-dashboard-red font-medium mr-1">最高</span>
+          <span className="text-foreground tabular-nums font-semibold">{summary.max.toFixed(4)}</span>
+          <div className="text-[10px] mt-0.5 text-muted-foreground">{summary.maxTime}</div>
         </div>
-        <div>
-          <span className="text-dashboard-green mr-1">最低</span>
-          <span className="text-foreground tabular-nums">{summary.min.toFixed(4)}</span>
-          <div className="text-[10px] mt-0.5">{summary.minTime}</div>
+        <div className="bg-card rounded-md p-2 border border-border">
+          <span className="text-dashboard-green font-medium mr-1">最低</span>
+          <span className="text-foreground tabular-nums font-semibold">{summary.min.toFixed(4)}</span>
+          <div className="text-[10px] mt-0.5 text-muted-foreground">{summary.minTime}</div>
         </div>
       </div>
     </div>
@@ -263,8 +208,8 @@ function TrendKpi({ label, value, unit, trend }: { label: string; value: number;
     ? `${value > 0 ? '↑' : value < 0 ? '↓' : '→'} ${Math.abs(value).toFixed(2)}%`
     : `${value.toFixed(2)} ${unit}`;
   return (
-    <div className="bg-secondary/30 border border-border rounded-sm p-2">
-      <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+    <div className="bg-card border border-border rounded-lg p-3 panel-card">
+      <div className="text-[10px] text-muted-foreground mb-1.5 font-medium">{label}</div>
       <div className={`text-sm font-bold tabular-nums ${color}`}>{display}</div>
     </div>
   );
@@ -292,8 +237,8 @@ function DateRangePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 text-xs gap-1 font-normal border-border">
-          <CalendarIcon className="w-3 h-3" />
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-normal border-border bg-card">
+          <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
           {format(value.from, 'yyyy-MM-dd')} 至 {format(value.to, 'yyyy-MM-dd')}
         </Button>
       </PopoverTrigger>
