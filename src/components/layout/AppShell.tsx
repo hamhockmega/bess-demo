@@ -23,6 +23,18 @@ const headerNavItems = [
       { label: '价格基准管理', path: '/priceBenchmark' },
     ],
   },
+  {
+    label: '现货交易',
+    path: '/spotTrading/intelligentQuoteStrategy',
+    children: [
+      { label: '智能策略(自调度)', path: '/spotTrading/intelligentSelfDispatch' },
+      { label: '智能策略(报量报价)', path: '/spotTrading/intelligentQuoteStrategy' },
+      { label: '策略模拟(自调度)', path: '/spotTrading/simulationSelfDispatch' },
+      { label: '策略模拟(报量报价)', path: '/spotTrading/simulationQuoteStrategy' },
+      { label: '策略复盘(自调度)', path: '/spotTrading/reviewSelfDispatch' },
+      { label: '策略复盘(报量报价)', path: '/spotTrading/reviewQuoteStrategy' },
+    ],
+  },
 ];
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
