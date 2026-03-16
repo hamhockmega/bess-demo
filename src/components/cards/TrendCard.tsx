@@ -54,7 +54,10 @@ export const TrendCard: React.FC = () => {
     <PanelCard
       title="行情趋势"
       headerRight={
-        <DashboardTabs tabs={SCENARIO_TABS.filter(s => availableScenarios.includes(s))} activeTab={trendScenario} onTabChange={(t) => setTrendScenario(t as Scenario)} />
+        <div className="flex items-center gap-2">
+          <DashboardTabs tabs={SCENARIO_TABS.filter(s => availableScenarios.includes(s))} activeTab={trendScenario} onTabChange={(t) => setTrendScenario(t as Scenario)} />
+          <ChartInfoButton info={CHART_INFO.trend} />
+        </div>
       }
       className="h-full"
     >

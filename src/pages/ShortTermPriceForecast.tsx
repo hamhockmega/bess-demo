@@ -88,7 +88,7 @@ export default function ShortTermPriceForecast() {
         </div>
 
         {/* Section 1: 价格预测结果 */}
-        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`}>
+        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Accuracy KPI */}
             <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">

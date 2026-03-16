@@ -97,21 +97,24 @@ export const StrategyResultChart: React.FC<Props> = ({
     <PanelCard
       title="策略结果"
       headerRight={
-        <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'px-3 py-1 text-xs rounded transition-all',
-                activeTab === tab
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'px-3 py-1 text-xs rounded transition-all',
+                  activeTab === tab
+                    ? 'bg-primary text-primary-foreground font-medium'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <ChartInfoButton info={CHART_INFO[activeTab === '中标功率' ? 'power' : activeTab === '中标电量' ? 'energy' : 'soc']} />
         </div>
       }
     >

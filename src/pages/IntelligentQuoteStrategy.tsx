@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,10 @@ import { StrategyParameterForm } from '@/components/strategy/StrategyParameterFo
 import { GeneratedQuotationTable } from '@/components/strategy/GeneratedQuotationTable';
 import { StrategyResultChart } from '@/components/strategy/StrategyResultChart';
 import { RuntimeParameterPanel } from '@/components/strategy/RuntimeParameterPanel';
+import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerformanceSummary';
+import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
+import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
+import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
 import { Zap, RotateCcw, Settings2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -15,6 +19,7 @@ import {
   type GeneratedStrategy,
   type UIMode,
 } from '@/data/strategyData';
+import { generateStrategyPerformance, type StrategyPerformance } from '@/data/strategyPerformanceData';
 import {
   Sheet,
   SheetContent,
@@ -26,11 +31,13 @@ const IntelligentQuoteStrategy: React.FC = () => {
   const [uiMode, setUiMode] = useState<UIMode>('beforeGenerate');
   const [form, setForm] = useState<StrategyForm>({ ...DEFAULT_STRATEGY_FORM });
   const [strategy, setStrategy] = useState<GeneratedStrategy | null>(null);
+  const [performance, setPerformance] = useState<StrategyPerformance | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleGenerate = useCallback(() => {
     const result = generateMockStrategy(form);
     setStrategy(result);
+    setPerformance(generateStrategyPerformance(result.strategyId, form.lossCostValue));
     setUiMode('afterGenerate');
     toast.success('智能策略已生成');
   }, [form]);
@@ -49,6 +56,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
     const result = generateMockStrategy(form);
     result.status = '已生成';
     setStrategy(result);
+    setPerformance(generateStrategyPerformance(result.strategyId, form.lossCostValue));
     setUiMode('afterGenerate');
     setSheetOpen(false);
     toast.success('策略已重新生成');
@@ -68,12 +76,12 @@ const IntelligentQuoteStrategy: React.FC = () => {
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-semibold text-foreground">智能策略(报量报价)</h1>
               {uiMode === 'afterGenerate' && strategy && (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                <Badge variant="outline" className="status-pill-success text-xs">
                   {strategy.status}
                 </Badge>
               )}
               {uiMode === 'editingAfterGenerate' && (
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                <Badge variant="outline" className="status-pill-warning text-xs">
                   参数已调整，待重新生成
                 </Badge>
               )}
@@ -129,32 +137,46 @@ const IntelligentQuoteStrategy: React.FC = () => {
 
         {/* ── State 2 & 3: After Generation ── */}
         {(uiMode === 'afterGenerate' || uiMode === 'editingAfterGenerate') && strategy && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-            {/* Left column */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                {strategy.strategyName}
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+              {/* Left column */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {strategy.strategyName}
+                </div>
+
+                {/* Quotation table */}
+                <GeneratedQuotationTable segments={strategy.quotationSegments} />
+
+                {/* Chart */}
+                <StrategyResultChart
+                  powerSeries={strategy.powerSeries}
+                  socSeries={strategy.socSeries}
+                  energySeries={strategy.energySeries}
+                />
               </div>
 
-              {/* Quotation table */}
-              <GeneratedQuotationTable segments={strategy.quotationSegments} />
-
-              {/* Chart */}
-              <StrategyResultChart
-                powerSeries={strategy.powerSeries}
-                socSeries={strategy.socSeries}
-                energySeries={strategy.energySeries}
-              />
+              {/* Right column */}
+              <div>
+                <RuntimeParameterPanel
+                  params={strategy.runtimeParameters}
+                  priceBenchmark={strategy.priceBenchmark}
+                />
+              </div>
             </div>
 
-            {/* Right column */}
-            <div>
-              <RuntimeParameterPanel
-                params={strategy.runtimeParameters}
-                priceBenchmark={strategy.priceBenchmark}
-              />
-            </div>
-          </div>
+            {/* ── Performance Evaluation Section ── */}
+            {performance && (
+              <div className="space-y-4 pt-2">
+                <StrategyPerformanceSummary perf={performance} />
+                <StrategyRevenueBreakdown perf={performance} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <StrategyAwardProbabilityPanel perf={performance} />
+                  <StrategyCalculationLogicPanel perf={performance} />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* ── State 3: Editing Sheet ── */}

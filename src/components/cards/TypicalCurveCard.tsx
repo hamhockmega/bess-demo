@@ -60,20 +60,23 @@ export const TypicalCurveCard: React.FC = () => {
     <PanelCard
       title={`典型曲线 - ${curveMetric}`}
       headerRight={
-        <div className="flex gap-1">
-          {SCENARIO_TABS.map(s => (
-            <button
-              key={s}
-              onClick={() => toggleScenario(s)}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                activeScenarios.includes(s)
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {SCENARIO_TABS.map(s => (
+              <button
+                key={s}
+                onClick={() => toggleScenario(s)}
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  activeScenarios.includes(s)
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <ChartInfoButton info={CHART_INFO.typicalCurve} />
         </div>
       }
       className="h-full"

@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import type { QuotationSegment } from '@/data/strategyData';
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
 
 export const GeneratedQuotationTable: React.FC<Props> = ({ segments }) => {
   return (
-    <PanelCard title="分段报价曲线">
+    <PanelCard title="分段报价曲线" headerRight={<ChartInfoButton info={CHART_INFO.quotation} />}>
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40">
