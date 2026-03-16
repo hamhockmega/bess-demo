@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { cn } from '@/lib/utils';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import type { PowerPoint, SocPoint, EnergyPoint } from '@/data/strategyData';
 
 type ChartTab = '中标功率' | '中标电量' | 'SOC';
