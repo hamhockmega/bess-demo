@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { cn } from '@/lib/utils';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import type { PowerPoint, SocPoint, EnergyPoint } from '@/data/strategyData';
 
 type ChartTab = '中标功率' | '中标电量' | 'SOC';
@@ -96,21 +97,24 @@ export const StrategyResultChart: React.FC<Props> = ({
     <PanelCard
       title="策略结果"
       headerRight={
-        <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'px-3 py-1 text-xs rounded transition-all',
-                activeTab === tab
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'px-3 py-1 text-xs rounded transition-all',
+                  activeTab === tab
+                    ? 'bg-primary text-primary-foreground font-medium'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <ChartInfoButton info={CHART_INFO[activeTab === '中标功率' ? 'power' : activeTab === '中标电量' ? 'energy' : 'soc']} />
         </div>
       }
     >

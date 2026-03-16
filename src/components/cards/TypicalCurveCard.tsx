@@ -7,6 +7,7 @@ import { useDashboardStore } from '@/store/dashboardState';
 import { findSeriesByMetric, type Scenario } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 
 const LOAD_METRICS = ['直调负荷', '全网负荷', '联络线受电负荷'];
 const SCENARIO_TABS: Scenario[] = ['出清前上午', '出清前下午', '出清后', '实际', '周前', '智能预测'];
@@ -59,20 +60,23 @@ export const TypicalCurveCard: React.FC = () => {
     <PanelCard
       title={`典型曲线 - ${curveMetric}`}
       headerRight={
-        <div className="flex gap-1">
-          {SCENARIO_TABS.map(s => (
-            <button
-              key={s}
-              onClick={() => toggleScenario(s)}
-              className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
-                activeScenarios.includes(s)
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {SCENARIO_TABS.map(s => (
+              <button
+                key={s}
+                onClick={() => toggleScenario(s)}
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  activeScenarios.includes(s)
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <ChartInfoButton info={CHART_INFO.typicalCurve} />
         </div>
       }
       className="h-full"

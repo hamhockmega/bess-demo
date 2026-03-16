@@ -7,6 +7,7 @@ import { useDashboardStore } from '@/store/dashboardState';
 import { findSeriesByMetric, type Scenario } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 
 const METRIC_TABS = ['日前电价-发电侧均价', '实时电价-发电侧均价', '日前中标功率', '实时中标功率'];
 const SCENARIO_TABS: Scenario[] = ['出清前上午', '出清前下午', '出清后', '实际', '智能预测'];
@@ -54,7 +55,10 @@ export const TrendCard: React.FC = () => {
     <PanelCard
       title="行情趋势"
       headerRight={
-        <DashboardTabs tabs={SCENARIO_TABS.filter(s => availableScenarios.includes(s))} activeTab={trendScenario} onTabChange={(t) => setTrendScenario(t as Scenario)} />
+        <div className="flex items-center gap-2">
+          <DashboardTabs tabs={SCENARIO_TABS.filter(s => availableScenarios.includes(s))} activeTab={trendScenario} onTabChange={(t) => setTrendScenario(t as Scenario)} />
+          <ChartInfoButton info={CHART_INFO.trend} />
+        </div>
       }
       className="h-full"
     >

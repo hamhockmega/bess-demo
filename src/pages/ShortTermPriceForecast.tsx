@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Search } from 'lucide-react';
+import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { format } from 'date-fns';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -87,7 +88,7 @@ export default function ShortTermPriceForecast() {
         </div>
 
         {/* Section 1: 价格预测结果 */}
-        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`}>
+        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Accuracy KPI */}
             <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
