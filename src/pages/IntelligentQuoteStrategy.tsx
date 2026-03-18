@@ -10,8 +10,9 @@ import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerfor
 import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
 import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
 import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
-import { Zap, RotateCcw, Settings2, Download } from 'lucide-react';
+import { Zap, RotateCcw, Settings2, Download, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import {
   DEFAULT_STRATEGY_FORM,
   generateMockStrategy,
