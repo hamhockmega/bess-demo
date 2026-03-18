@@ -10,8 +10,9 @@ import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerfor
 import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
 import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
 import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
-import { Zap, RotateCcw, Settings2, Download } from 'lucide-react';
+import { Zap, RotateCcw, Settings2, Download, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import {
   DEFAULT_STRATEGY_FORM,
   generateMockStrategy,
@@ -20,6 +21,7 @@ import {
   type UIMode,
 } from '@/data/strategyData';
 import { generateStrategyPerformance, type StrategyPerformance } from '@/data/strategyPerformanceData';
+import { strategySnapshotRepository, type StrategySnapshot } from '@/data/reviewData';
 import {
   Sheet,
   SheetContent,
@@ -28,11 +30,39 @@ import {
 } from '@/components/ui/sheet';
 
 const IntelligentQuoteStrategy: React.FC = () => {
+  const navigate = useNavigate();
   const [uiMode, setUiMode] = useState<UIMode>('beforeGenerate');
   const [form, setForm] = useState<StrategyForm>({ ...DEFAULT_STRATEGY_FORM });
   const [strategy, setStrategy] = useState<GeneratedStrategy | null>(null);
   const [performance, setPerformance] = useState<StrategyPerformance | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleSaveForReview = useCallback(() => {
+    if (!strategy || !performance) return;
+    const snapshot: StrategySnapshot = {
+      strategyId: strategy.strategyId,
+      strategyName: strategy.strategyName,
+      strategySourceType: 'generated',
+      strategyDate: new Date().toISOString().slice(0, 10),
+      initialSoc: form.initialSoc,
+      socMin: form.minSoc,
+      socMax: form.maxSoc,
+      chargePowerLimit: Math.abs(form.chargePowerLimit),
+      dischargePowerLimit: form.dischargePowerLimit,
+      chargePriceTrigger: strategy.quotationSegments.find(s => s.type === '充电')?.offerPrice ?? 200,
+      dischargePriceTrigger: strategy.quotationSegments.find(s => s.type === '放电')?.offerPrice ?? 350,
+      chargingEfficiency: performance.chargingEfficiency,
+      dischargingEfficiency: performance.dischargingEfficiency,
+      otherCosts: performance.otherCosts,
+      capacity: form.availableCapacity,
+      notes: `由智能策略生成，${strategy.createdAt}`,
+      generatedAt: strategy.createdAt,
+      expectedProfit: performance.netProfit,
+      expectedAwardProbability: performance.awardProbability,
+    };
+    strategySnapshotRepository.save(snapshot);
+    toast.success('策略已保存，可在"策略复盘"中使用');
+  }, [strategy, performance, form]);
 
   const handleGenerate = useCallback(() => {
     const result = generateMockStrategy(form);
@@ -112,6 +142,10 @@ const IntelligentQuoteStrategy: React.FC = () => {
                 <Button variant="outline" size="sm">
                   <Download className="w-3.5 h-3.5 mr-1" />
                   下载申报方案
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSaveForReview}>
+                  <Save className="w-3.5 h-3.5 mr-1" />
+                  保存为复盘策略
                 </Button>
               </>
             )}

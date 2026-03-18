@@ -25,6 +25,7 @@ const headerNavItems = [
     path: '/spotTrading/intelligentQuoteStrategy',
     children: [
       { label: '智能策略(报量报价)', path: '/spotTrading/intelligentQuoteStrategy' },
+      { label: '策略复盘(报量报价)', path: '/spotTrading/reviewQuoteStrategy' },
     ],
   },
 ];
