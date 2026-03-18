@@ -31,11 +31,7 @@ const App = () => (
           <Route path="/mediumAndLongTermTradingInfo" element={<MediumAndLongTermTradingInfo />} />
           {/* 现货交易 */}
           <Route path="/spotTrading/intelligentQuoteStrategy" element={<IntelligentQuoteStrategy />} />
-          <Route path="/spotTrading/intelligentSelfDispatch" element={<Navigate to="/spotTrading/intelligentQuoteStrategy" replace />} />
-          <Route path="/spotTrading/simulationSelfDispatch" element={<Navigate to="/spotTrading/intelligentQuoteStrategy" replace />} />
-          <Route path="/spotTrading/simulationQuoteStrategy" element={<Navigate to="/spotTrading/intelligentQuoteStrategy" replace />} />
-          <Route path="/spotTrading/reviewSelfDispatch" element={<Navigate to="/spotTrading/intelligentQuoteStrategy" replace />} />
-          <Route path="/spotTrading/reviewQuoteStrategy" element={<Navigate to="/spotTrading/intelligentQuoteStrategy" replace />} />
+          <Route path="/spotTrading/reviewQuoteStrategy" element={<ReviewQuoteStrategy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
