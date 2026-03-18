@@ -8,6 +8,7 @@ import MediumAndLongTermTradingInfo from "./pages/MediumAndLongTermTradingInfo";
 import CustomBoard from "./pages/CustomBoard";
 import ShortTermPriceForecast from "./pages/ShortTermPriceForecast";
 import IntelligentQuoteStrategy from "./pages/IntelligentQuoteStrategy";
+import ReviewQuoteStrategy from "./pages/ReviewQuoteStrategy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
