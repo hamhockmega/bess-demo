@@ -285,10 +285,10 @@ const StorageDispatchPanel: React.FC<{ date: string }> = ({ date }) => {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch actual real-time prices for dispatch computation
+  // Fetch actual real-time prices for dispatch computation (from market_price_points)
   const { data: priceData } = useQuery({
-    queryKey: ['customBoardMetric', '实时电价-发电侧均价', date, '实际'],
-    queryFn: () => fetchCustomBoardMetric('实时电价-发电侧均价', date, '实际'),
+    queryKey: ['storageDispatchPrice', '发电侧均价', date],
+    queryFn: () => fetchPriceSeries('发电侧均价', '实时电价', date, '实际'),
     staleTime: 60_000,
   });
 
