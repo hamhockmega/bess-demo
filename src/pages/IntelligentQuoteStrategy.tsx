@@ -10,17 +10,22 @@ import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerfor
 import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
 import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
 import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
-import { Zap, RotateCcw, Settings2, Download, Save } from 'lucide-react';
+import { ScenarioPreviewPanel } from '@/components/strategy/ScenarioPreviewPanel';
+import { PanelCard } from '@/components/dashboard/PanelCard';
+import { Zap, RotateCcw, Settings2, Download, Save, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
   DEFAULT_STRATEGY_FORM,
-  generateMockStrategy,
   type StrategyForm,
   type GeneratedStrategy,
   type UIMode,
 } from '@/data/strategyData';
-import { generateStrategyPerformance, type StrategyPerformance } from '@/data/strategyPerformanceData';
+import type { StrategyPerformance } from '@/data/strategyPerformanceData';
+import type { ForecastScenario } from '@/data/forecastScenarioService';
+import { listForecastScenarioDates, getForecastScenarioByDate } from '@/data/forecastScenarioService';
+import { buildStrategyFromScenario } from '@/data/strategyGenerationEngine';
 import { saveGeneratedStrategyToSupabase } from '@/data/strategySaveService';
 import {
   Sheet,
@@ -28,15 +33,51 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 const IntelligentQuoteStrategy: React.FC = () => {
-  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [uiMode, setUiMode] = useState<UIMode>('beforeGenerate');
   const [form, setForm] = useState<StrategyForm>({ ...DEFAULT_STRATEGY_FORM });
   const [strategy, setStrategy] = useState<GeneratedStrategy | null>(null);
   const [performance, setPerformance] = useState<StrategyPerformance | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Scenario state
+  const [forecastDate, setForecastDate] = useState<string>('');
+  const [scenario, setScenario] = useState<ForecastScenario | null>(null);
+  const [scenarioSource, setScenarioSource] = useState('智能预测模型');
+
+  const availableDates = useMemo(() => listForecastScenarioDates(), []);
+
+  const handleDateSelect = useCallback(
+    (date: Date | undefined) => {
+      if (!date) return;
+      const dateStr = format(date, 'yyyy-MM-dd');
+      setForecastDate(dateStr);
+      const loaded = getForecastScenarioByDate(dateStr);
+      if (loaded) {
+        setScenario(loaded);
+        toast.success('已载入预测场景');
+      } else {
+        setScenario(null);
+        toast.error('未找到所选日期的预测场景');
+      }
+    },
+    [],
+  );
 
   const handleSaveForReview = useCallback(async () => {
     if (!strategy || !performance) {
@@ -61,12 +102,16 @@ const IntelligentQuoteStrategy: React.FC = () => {
   }, [strategy, performance, form, saving]);
 
   const handleGenerate = useCallback(() => {
-    const result = generateMockStrategy(form);
-    setStrategy(result);
-    setPerformance(generateStrategyPerformance(result.strategyId, form.lossCostValue));
+    if (!scenario) {
+      toast.error('请先选择预测日期并载入场景');
+      return;
+    }
+    const { strategy: gen, performance: perf } = buildStrategyFromScenario(form, scenario, forecastDate);
+    setStrategy(gen);
+    setPerformance(perf);
     setUiMode('afterGenerate');
     toast.success('智能策略已生成');
-  }, [form]);
+  }, [form, scenario, forecastDate]);
 
   const handleReset = useCallback(() => {
     setForm({ ...DEFAULT_STRATEGY_FORM });
@@ -79,19 +124,27 @@ const IntelligentQuoteStrategy: React.FC = () => {
   }, []);
 
   const handleRegenerate = useCallback(() => {
-    const result = generateMockStrategy(form);
-    result.status = '已生成';
-    setStrategy(result);
-    setPerformance(generateStrategyPerformance(result.strategyId, form.lossCostValue));
+    if (!scenario) {
+      toast.error('请先选择预测日期并载入场景');
+      return;
+    }
+    const { strategy: gen, performance: perf } = buildStrategyFromScenario(form, scenario, forecastDate);
+    gen.status = '已生成';
+    setStrategy(gen);
+    setPerformance(perf);
     setUiMode('afterGenerate');
     setSheetOpen(false);
     toast.success('策略已重新生成');
-  }, [form]);
+  }, [form, scenario, forecastDate]);
 
   const handleResetInSheet = useCallback(() => {
     setForm({ ...DEFAULT_STRATEGY_FORM });
     toast.info('已恢复系统默认值');
   }, []);
+
+  // Parse forecastDate for Calendar
+  const selectedCalDate = forecastDate ? new Date(forecastDate + 'T00:00:00') : undefined;
+  const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
 
   return (
     <AppShell>
@@ -123,7 +176,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
                   重置参数
                 </Button>
-                <Button size="sm" onClick={handleGenerate}>
+                <Button size="sm" onClick={handleGenerate} disabled={!scenario}>
                   <Zap className="w-3.5 h-3.5 mr-1" />
                   获取智能策略
                 </Button>
@@ -148,6 +201,78 @@ const IntelligentQuoteStrategy: React.FC = () => {
           </div>
         </div>
 
+        {/* ── Scenario Selection ── */}
+        {uiMode === 'beforeGenerate' && (
+          <PanelCard title="预测场景选择">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              {/* Date picker */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  <span className="text-destructive mr-0.5">*</span>预测日期
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal h-8 text-xs',
+                        !forecastDate && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 mr-2" />
+                      {forecastDate || '请选择预测日期'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedCalDate}
+                      onSelect={handleDateSelect}
+                      disabled={(date) => {
+                        const ds = format(date, 'yyyy-MM-dd');
+                        return !availableDateSet.has(ds);
+                      }}
+                      className={cn('p-3 pointer-events-auto')}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Source */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">场景来源</label>
+                <Select value={scenarioSource} onValueChange={setScenarioSource}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="智能预测模型">智能预测模型</SelectItem>
+                    <SelectItem value="历史均值场景">历史均值场景</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status indicator */}
+              <div className="flex items-center h-8">
+                {scenario ? (
+                  <Badge variant="outline" className="status-pill-success text-xs">
+                    已载入 · {scenario.intervals.length} 个时段
+                  </Badge>
+                ) : forecastDate ? (
+                  <span className="text-xs text-muted-foreground">正在载入预测场景...</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">请先选择预测日期</span>
+                )}
+              </div>
+            </div>
+          </PanelCard>
+        )}
+
+        {/* ── Scenario Preview ── */}
+        {scenario && uiMode === 'beforeGenerate' && (
+          <ScenarioPreviewPanel scenario={scenario} />
+        )}
+
         {/* ── State 1: Before Generation ── */}
         {uiMode === 'beforeGenerate' && (
           <div className="max-w-3xl mx-auto">
@@ -157,7 +282,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
                 重置参数
               </Button>
-              <Button onClick={handleGenerate}>
+              <Button onClick={handleGenerate} disabled={!scenario}>
                 <Zap className="w-3.5 h-3.5 mr-1" />
                 获取智能策略
               </Button>
@@ -168,6 +293,15 @@ const IntelligentQuoteStrategy: React.FC = () => {
         {/* ── State 2 & 3: After Generation ── */}
         {(uiMode === 'afterGenerate' || uiMode === 'editingAfterGenerate') && strategy && (
           <>
+            {/* Scenario info bar */}
+            {scenario && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2">
+                <span>预测日期：<strong className="text-foreground">{forecastDate}</strong></span>
+                <span>场景来源：<strong className="text-foreground">{scenarioSource}</strong></span>
+                <span>时段数：<strong className="text-foreground">{scenario.intervals.length}</strong></span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
               {/* Left column */}
               <div className="space-y-4">
