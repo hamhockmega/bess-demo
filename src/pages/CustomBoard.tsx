@@ -211,7 +211,9 @@ const WiredPanel: React.FC<{
   }, [panelName, config.dbMetricName, subItem]);
 
   // Dynamic stage detection for ALL wired panels
-  const { data: detectedStages } = useAvailableStages(dbMetric, date, config.type);
+  const { data: detectedResult } = useAvailableStages(dbMetric, date, config.type);
+  const detectedStages = detectedResult?.stages;
+  const priceTypeCounts = detectedResult?.priceTypeCounts;
 
   // Report available stages back to parent for filter options
   React.useEffect(() => {
