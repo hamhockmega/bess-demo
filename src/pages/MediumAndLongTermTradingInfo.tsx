@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
+import { toast } from 'sonner';
 import { PanelCard } from '@/components/dashboard/PanelCard';
 import {
   Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
