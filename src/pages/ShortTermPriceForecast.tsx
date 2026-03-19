@@ -16,7 +16,6 @@ import { fetchForecastActualPriceData, type ForecastPriceSummary } from '@/data/
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 
 export default function ShortTermPriceForecast() {
-  const [side, setSide] = useState<Side>('generation');
   const [defaultDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
@@ -26,32 +25,22 @@ export default function ShortTermPriceForecast() {
   const [queryVersion, setQueryVersion] = useState(0);
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  const useSupabase = SUPABASE_SIDES.has(side);
-
   const priceMetricName = '统一结算价';
 
   const { data: supabaseData, isLoading, isError, error } = useQuery({
     queryKey: ['forecastPriceData', priceMetricName, dateStr, queryVersion],
     queryFn: () => fetchForecastActualPriceData(dateStr, dateStr, priceMetricName),
-    enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
   });
 
-  const mockData: ForecastResult = useMemo(() => {
-    if (useSupabase) return { accuracy: 0, period: '', points: [], dailyAvg: [], summaries: [] };
-    void queryVersion;
-    return fetchMockForecastData(dateStr, dateStr, side);
-  }, [dateStr, side, queryVersion, useSupabase]);
-
   const data = useMemo(() => {
-    if (!useSupabase) return mockData;
     if (!supabaseData) return { accuracy: 0, period: dateStr, points: [] as any[], dailyAvg: [] as any[], summaries: [] as any[], isIncomplete: false };
     return supabaseData;
-  }, [useSupabase, supabaseData, mockData, dateStr]);
+  }, [supabaseData, dateStr]);
 
-  const isIncomplete = useSupabase && (supabaseData?.isIncomplete ?? false);
-  const hasNoData = useSupabase && !isLoading && !isError && data.points.length === 0;
+  const isIncomplete = supabaseData?.isIncomplete ?? false;
+  const hasNoData = !isLoading && !isError && data.points.length === 0;
 
   const intradayData = useMemo(() => {
     if (data.points.length === 0) return [];
