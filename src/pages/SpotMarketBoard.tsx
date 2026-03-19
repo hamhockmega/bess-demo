@@ -6,8 +6,6 @@ import { TrendCard } from '@/components/cards/TrendCard';
 import { TypicalCurveCard } from '@/components/cards/TypicalCurveCard';
 import { TariffCard } from '@/components/cards/TariffCard';
 import { SupplyDemandCard } from '@/components/cards/SupplyDemandCard';
-import { SupervisionCard } from '@/components/cards/SupervisionCard';
-import { ClearingComparisonCard } from '@/components/cards/ClearingComparisonCard';
 import { useDashboardStore, type MainSection } from '@/store/dashboardState';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
