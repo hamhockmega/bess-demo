@@ -24,12 +24,12 @@ const SIDE_LABELS: Record<Side, string> = {
 };
 
 const PRICE_LABELS: Record<Side, string> = {
-  generation: '发电侧均价',
+  generation: '统一结算价',
   consumption: '统一结算价',
 };
 
-/** Sides wired to Supabase; others fall back to mock */
-const SUPABASE_SIDES = new Set<Side>(['generation']);
+/** Both sides now wired to Supabase via market_price_points */
+const SUPABASE_SIDES = new Set<Side>(['generation', 'consumption']);
 
 export default function ShortTermPriceForecast() {
   const [side, setSide] = useState<Side>('generation');
