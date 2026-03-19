@@ -1,18 +1,20 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
 import { PanelCard } from '@/components/dashboard/PanelCard';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Search } from 'lucide-react';
+import { CalendarIcon, Search, Loader2, AlertTriangle } from 'lucide-react';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { format } from 'date-fns';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, Area, AreaChart,
 } from 'recharts';
-import { fetchForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
-import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE, VALUE_COLORS } from '@/lib/chartTheme';
+import { fetchForecastPriceData, type ForecastQueryResult, type ForecastPriceSummary } from '@/data/marketMetricQueries';
+import { fetchForecastData as fetchMockForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
+import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 
 type Side = 'generation' | 'consumption';
 
@@ -26,6 +28,9 @@ const PRICE_LABELS: Record<Side, string> = {
   consumption: '统一结算价',
 };
 
+/** Sides wired to Supabase; others fall back to mock */
+const SUPABASE_SIDES = new Set<Side>(['generation']);
+
 export default function ShortTermPriceForecast() {
   const [side, setSide] = useState<Side>('generation');
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -34,20 +39,66 @@ export default function ShortTermPriceForecast() {
   });
   const [queryVersion, setQueryVersion] = useState(0);
 
-  const data: ForecastResult = useMemo(() => {
+  const startStr = format(dateRange.from, 'yyyy-MM-dd');
+  const endStr = format(dateRange.to, 'yyyy-MM-dd');
+  const useSupabase = SUPABASE_SIDES.has(side);
+
+  // ── Supabase query ──
+  const { data: supabaseData, isLoading, isError, error } = useQuery({
+    queryKey: ['forecastPriceData', startStr, endStr, queryVersion],
+    queryFn: () => fetchForecastPriceData(startStr, endStr),
+    enabled: useSupabase,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  // ── Mock fallback for consumption side ──
+  const mockData: ForecastResult = useMemo(() => {
+    if (useSupabase) return { accuracy: 0, period: '', points: [], dailyAvg: [], summaries: [] };
     void queryVersion;
-    return fetchForecastData(
-      format(dateRange.from, 'yyyy-MM-dd'),
-      format(dateRange.to, 'yyyy-MM-dd'),
-      side,
-    );
-  }, [dateRange, side, queryVersion]);
+    return fetchMockForecastData(startStr, endStr, side);
+  }, [startStr, endStr, side, queryVersion, useSupabase]);
+
+  // ── Unified data shape ──
+  const data = useMemo(() => {
+    if (!useSupabase) return mockData;
+    if (!supabaseData) return { accuracy: 0, period: `${startStr} 至 ${endStr}`, points: [] as any[], dailyAvg: [] as any[], summaries: [] as any[], isIncomplete: false };
+    return supabaseData;
+  }, [useSupabase, supabaseData, mockData, startStr, endStr]);
+
+  const isIncomplete = useSupabase && (supabaseData?.isIncomplete ?? false);
+  const hasNoData = useSupabase && !isLoading && !isError && data.points.length === 0;
 
   const intradayData = useMemo(() => {
     if (data.points.length === 0) return [];
     const firstDate = data.points[0].date;
     return data.points.filter((p) => p.date === firstDate);
   }, [data]);
+
+  // ── Loading state ──
+  if (useSupabase && isLoading) {
+    return (
+      <AppShell>
+        <div className="p-5 flex items-center justify-center h-[60vh] gap-2 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">正在加载价格分析数据…</span>
+        </div>
+      </AppShell>
+    );
+  }
+
+  // ── Error state ──
+  if (useSupabase && isError) {
+    return (
+      <AppShell>
+        <div className="p-5 flex flex-col items-center justify-center h-[60vh] gap-2 text-destructive">
+          <AlertTriangle className="w-6 h-6" />
+          <span className="text-sm">价格分析数据加载失败</span>
+          <span className="text-xs text-muted-foreground">{(error as Error)?.message}</span>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -87,92 +138,112 @@ export default function ShortTermPriceForecast() {
           </div>
         </div>
 
-        {/* Section 1: 价格预测结果 */}
-        <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Accuracy KPI */}
-            <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
-              <span className="text-xs text-muted-foreground mb-2 font-medium">日前预测值准确率</span>
-              <span className="text-4xl font-bold text-primary tabular-nums">{data.accuracy}%</span>
-              <span className="text-xs text-muted-foreground mt-2">所选时段</span>
-            </div>
-            {/* Intraday chart */}
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={intradayData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid {...GRID_STYLE} />
-                  <XAxis dataKey="time" tick={AXIS_STYLE.tick} interval={11} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
-                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50}
-                    label={{ value: '元/MWh', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8A978F' } }}
-                  />
-                  <Tooltip {...TOOLTIP_STYLE} />
-                  <Legend {...LEGEND_STYLE} />
-                  <Line type="monotone" dataKey="dayAhead" name="日前电价(预测)" stroke={CHART_COLORS.deep} dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="realTime" name="实时电价(预测)" stroke={CHART_COLORS.amber} dot={false} strokeWidth={1.5} strokeDasharray="4 3" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Incomplete data warning */}
+        {isIncomplete && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            当前场景数据不完整
           </div>
-        </PanelCard>
+        )}
 
-        {/* Section 2: 日均价 */}
-        <PanelCard title="日均价 (元/MWh)">
-          <div className="space-y-6">
-            {/* Summary blocks */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {data.summaries.map((s, i) => (
-                <SummaryBlock key={i} summary={s} />
-              ))}
-            </div>
-            {/* Daily avg bar chart */}
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.dailyAvg} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid {...GRID_STYLE} />
-                  <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
-                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
-                  <Tooltip {...TOOLTIP_STYLE} formatter={(val: number) => [`${val.toFixed(2)} 元/MWh`]} />
-                  <Legend {...LEGEND_STYLE} />
-                  <Bar dataKey="dayAheadAvg" name="日前均价" fill={CHART_COLORS.primary} radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="realTimeAvg" name="实时均价" fill={CHART_COLORS.blue} radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Empty state */}
+        {hasNoData && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
+            <span className="text-sm">未找到所选指标的场景数据</span>
           </div>
-        </PanelCard>
+        )}
 
-        {/* Section 3: 趋势分析 */}
-        <PanelCard title="趋势分析">
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <TrendKpi label="最大价差" value={computeMaxSpread(data)} unit="元/MWh" />
-              <TrendKpi label="日前均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.dayAheadAvg))} unit="" trend />
-              <TrendKpi label="实时均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.realTimeAvg))} unit="" trend />
-            </div>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={data.dailyAvg.map((d) => ({
-                    date: d.date,
-                    spread: Math.round((d.dayAheadAvg - d.realTimeAvg) * 100) / 100,
-                    dayAheadAvg: d.dayAheadAvg,
-                    realTimeAvg: d.realTimeAvg,
-                  }))}
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                >
-                  <CartesianGrid {...GRID_STYLE} />
-                  <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
-                  <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
-                  <Tooltip {...TOOLTIP_STYLE} />
-                  <Legend {...LEGEND_STYLE} />
-                  <Area type="monotone" dataKey="dayAheadAvg" name="日前均价" stroke={CHART_COLORS.primary} fill={CHART_COLORS.primary} fillOpacity={0.1} />
-                  <Area type="monotone" dataKey="realTimeAvg" name="实时均价" stroke={CHART_COLORS.blue} fill={CHART_COLORS.blue} fillOpacity={0.1} />
-                  <Area type="monotone" dataKey="spread" name="日前-实时价差" stroke={CHART_COLORS.purple} fill={CHART_COLORS.purple} fillOpacity={0.08} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </PanelCard>
+        {/* Only render charts when there is data */}
+        {data.points.length > 0 && (
+          <>
+            {/* Section 1: 价格预测结果 */}
+            <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Accuracy KPI */}
+                <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
+                  <span className="text-xs text-muted-foreground mb-2 font-medium">日前预测值准确率</span>
+                  <span className="text-4xl font-bold text-primary tabular-nums">{data.accuracy}%</span>
+                  <span className="text-xs text-muted-foreground mt-2">所选时段</span>
+                </div>
+                {/* Intraday chart */}
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={intradayData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid {...GRID_STYLE} />
+                      <XAxis dataKey="time" tick={AXIS_STYLE.tick} interval={11} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                      <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50}
+                        label={{ value: '元/MWh', angle: -90, position: 'insideLeft', style: { fontSize: 9, fill: '#8A978F' } }}
+                      />
+                      <Tooltip {...TOOLTIP_STYLE} />
+                      <Legend {...LEGEND_STYLE} />
+                      <Line type="monotone" dataKey="dayAhead" name="日前电价(预测)" stroke={CHART_COLORS.deep} dot={false} strokeWidth={2} />
+                      <Line type="monotone" dataKey="realTime" name="实时电价(预测)" stroke={CHART_COLORS.amber} dot={false} strokeWidth={1.5} strokeDasharray="4 3" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </PanelCard>
+
+            {/* Section 2: 日均价 */}
+            <PanelCard title="日均价 (元/MWh)">
+              <div className="space-y-6">
+                {/* Summary blocks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {data.summaries.map((s, i) => (
+                    <SummaryBlock key={i} summary={s} />
+                  ))}
+                </div>
+                {/* Daily avg bar chart */}
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.dailyAvg} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid {...GRID_STYLE} />
+                      <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                      <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
+                      <Tooltip {...TOOLTIP_STYLE} formatter={(val: number) => [`${val.toFixed(2)} 元/MWh`]} />
+                      <Legend {...LEGEND_STYLE} />
+                      <Bar dataKey="dayAheadAvg" name="日前均价" fill={CHART_COLORS.primary} radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="realTimeAvg" name="实时均价" fill={CHART_COLORS.blue} radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </PanelCard>
+
+            {/* Section 3: 趋势分析 */}
+            <PanelCard title="趋势分析">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <TrendKpi label="最大价差" value={computeMaxSpread(data)} unit="元/MWh" />
+                  <TrendKpi label="日前均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.dayAheadAvg))} unit="" trend />
+                  <TrendKpi label="实时均价趋势" value={computeTrend(data.dailyAvg.map((d) => d.realTimeAvg))} unit="" trend />
+                </div>
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={data.dailyAvg.map((d) => ({
+                        date: d.date,
+                        spread: Math.round((d.dayAheadAvg - d.realTimeAvg) * 100) / 100,
+                        dayAheadAvg: d.dayAheadAvg,
+                        realTimeAvg: d.realTimeAvg,
+                      }))}
+                      margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid {...GRID_STYLE} />
+                      <XAxis dataKey="date" tick={AXIS_STYLE.tick} interval={Math.max(0, Math.floor(data.dailyAvg.length / 10) - 1)} axisLine={AXIS_STYLE.axisLine} tickLine={false} />
+                      <YAxis tick={AXIS_STYLE.tick} axisLine={AXIS_STYLE.axisLine} tickLine={false} width={50} />
+                      <Tooltip {...TOOLTIP_STYLE} />
+                      <Legend {...LEGEND_STYLE} />
+                      <Area type="monotone" dataKey="dayAheadAvg" name="日前均价" stroke={CHART_COLORS.primary} fill={CHART_COLORS.primary} fillOpacity={0.1} />
+                      <Area type="monotone" dataKey="realTimeAvg" name="实时均价" stroke={CHART_COLORS.blue} fill={CHART_COLORS.blue} fillOpacity={0.1} />
+                      <Area type="monotone" dataKey="spread" name="日前-实时价差" stroke={CHART_COLORS.purple} fill={CHART_COLORS.purple} fillOpacity={0.08} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </PanelCard>
+          </>
+        )}
       </div>
     </AppShell>
   );
@@ -180,7 +251,7 @@ export default function ShortTermPriceForecast() {
 
 /* ── Sub-components ── */
 
-function SummaryBlock({ summary }: { summary: PriceSummary }) {
+function SummaryBlock({ summary }: { summary: ForecastPriceSummary | PriceSummary }) {
   return (
     <div className="bg-secondary border border-border rounded-lg p-4 space-y-3">
       <div className="text-sm font-semibold text-foreground">{summary.label}</div>
@@ -258,7 +329,7 @@ function DateRangePicker({
 
 /* ── Computed helpers ── */
 
-function computeMaxSpread(data: ForecastResult): number {
+function computeMaxSpread(data: { dailyAvg: { dayAheadAvg: number; realTimeAvg: number }[] }): number {
   if (data.dailyAvg.length === 0) return 0;
   const spreads = data.dailyAvg.map((d) => Math.abs(d.dayAheadAvg - d.realTimeAvg));
   return Math.round(Math.max(...spreads) * 100) / 100;
