@@ -132,6 +132,27 @@ const PanelFilter: React.FC<{
   </Select>
 );
 
+// ── Hook to detect available price types for a metric ──
+
+function useAvailablePriceTypes(metricName: string, date: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['availablePriceTypes', metricName, date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('market_price_points')
+        .select('price_type')
+        .eq('metric_name', metricName)
+        .eq('scenario_date', date)
+        .eq('source_stage', '实际');
+      if (error) throw error;
+      const types = [...new Set((data ?? []).map(r => r.price_type))];
+      return types;
+    },
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
 // ── Supabase-wired panel component ──
 
 const WiredPanel: React.FC<{
@@ -140,8 +161,10 @@ const WiredPanel: React.FC<{
   date: string;
   stage: string;
   subItem: string;
-}> = ({ panelName, config, date, stage, subItem }) => {
+  onAvailableStages?: (stages: string[]) => void;
+}> = ({ panelName, config, date, stage, subItem, onAvailableStages }) => {
   const isPrice = config.type === 'price';
+  const isDynamic = config.dynamicPriceTypes === true;
 
   // Resolve actual DB metric name (系统负荷 sub-items map to different metrics)
   const dbMetric = useMemo(() => {
@@ -156,6 +179,27 @@ const WiredPanel: React.FC<{
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
 
+  // Detect available price types dynamically
+  const { data: availableTypes } = useAvailablePriceTypes(dbMetric, date, isPrice && isDynamic);
+
+  // Report available stages back to parent for filter options
+  React.useEffect(() => {
+    if (!isDynamic || !availableTypes || !onAvailableStages) return;
+    const stages = [...availableTypes];
+    // Always allow 智能预测 if 实时电价 is available
+    if (availableTypes.includes('实时电价')) {
+      stages.push('智能预测');
+    }
+    onAvailableStages(stages);
+  }, [isDynamic, availableTypes, onAvailableStages]);
+
+  // Check if the currently selected stage is valid
+  const stageValid = useMemo(() => {
+    if (!isDynamic || !availableTypes) return true; // still loading
+    if (stage === '智能预测') return availableTypes.includes('实时电价');
+    return availableTypes.includes(stage);
+  }, [isDynamic, availableTypes, stage]);
+
   const isDerived = stage === '智能预测' && isPrice;
   // For price panels: stage is a price_type (日前电价/实时电价) or 智能预测
   // For 智能预测, derive from 实时电价
@@ -165,7 +209,7 @@ const WiredPanel: React.FC<{
   const { data: priceData, isLoading: priceLoading, isError: priceError } = useQuery({
     queryKey: ['customBoardPrice', dbMetric, date, priceType],
     queryFn: () => fetchPriceSeries(dbMetric, priceType, date, '实际'),
-    enabled: isPrice,
+    enabled: isPrice && stageValid,
     staleTime: 60_000,
     retry: 1,
   });
@@ -182,6 +226,15 @@ const WiredPanel: React.FC<{
   const isLoading = isPrice ? priceLoading : metricLoading;
   const isError = isPrice ? priceError : metricError;
   const rawData = isPrice ? priceData : metricData;
+
+  // If stage is not valid (e.g. 日前电价 doesn't exist), show message
+  if (isPrice && isDynamic && !stageValid) {
+    return (
+      <div className="h-[220px] flex items-center justify-center text-muted-foreground">
+        <span className="text-xs">当前价格类型「{stage}」暂无数据</span>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -245,7 +298,7 @@ const WiredPanel: React.FC<{
   return (
     <div className="space-y-1">
       {isDerived && (
-        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-600">
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-primary/80">
           <Info className="w-3 h-3" />
           智能预测基于实时电价确定性派生
         </div>
@@ -257,7 +310,7 @@ const WiredPanel: React.FC<{
         </div>
       )}
       {rawData.isIncomplete && (
-        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-amber-600">
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-warning">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
         </div>
