@@ -45,7 +45,7 @@ export interface PowerPoint {
   time: string; // HH:mm
   quotationPower: number;
   awardedPower: number;
-  dayAheadPrice: number;
+  realTimePrice: number;
 }
 
 export interface SocPoint {
