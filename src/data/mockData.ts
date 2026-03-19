@@ -215,33 +215,57 @@ export interface TariffRow {
 }
 
 export const tariffCoefficients: TariffRow[] = [
-  { month: '1月', 深谷: 0.25, 谷: 0.45, 平: 1.0, 峰: 1.65, 尖峰: 1.85 },
-  { month: '2月', 深谷: 0.25, 谷: 0.45, 平: 1.0, 峰: 1.65, 尖峰: 1.85 },
-  { month: '3月', 深谷: 0.28, 谷: 0.48, 平: 1.0, 峰: 1.62, 尖峰: 1.82 },
-  { month: '4月', 深谷: 0.30, 谷: 0.50, 平: 1.0, 峰: 1.58, 尖峰: 1.78 },
-  { month: '5月', 深谷: 0.28, 谷: 0.48, 平: 1.0, 峰: 1.60, 尖峰: 1.80 },
-  { month: '6月', 深谷: 0.22, 谷: 0.42, 平: 1.0, 峰: 1.70, 尖峰: 1.92 },
-  { month: '7月', 深谷: 0.20, 谷: 0.40, 平: 1.0, 峰: 1.75, 尖峰: 1.95 },
-  { month: '8月', 深谷: 0.20, 谷: 0.40, 平: 1.0, 峰: 1.75, 尖峰: 1.95 },
-  { month: '9月', 深谷: 0.25, 谷: 0.45, 平: 1.0, 峰: 1.68, 尖峰: 1.88 },
-  { month: '10月', 深谷: 0.28, 谷: 0.48, 平: 1.0, 峰: 1.62, 尖峰: 1.82 },
-  { month: '11月', 深谷: 0.25, 谷: 0.45, 平: 1.0, 峰: 1.65, 尖峰: 1.85 },
-  { month: '12月', 深谷: 0.22, 谷: 0.42, 平: 1.0, 峰: 1.72, 尖峰: 1.90 },
+  { month: '1月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '2月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '3月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '4月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '5月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '6月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '7月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '8月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '9月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '10月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '11月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
+  { month: '12月', 深谷: 0.1, 谷: 0.3, 平: 1.0, 峰: 1.7, 尖峰: 2.0 },
 ];
 
-export interface TariffMiscRow {
-  item: string;
+// === MONTHLY MISC TARIFF (官方月度杂项费用) ===
+export interface TariffMiscMonthlyItem {
+  容量补偿电价: number | null;
+  上网环节线损: number | null;
+  系统运行费: number | null;
+  政府性基金及附加: number | null;
+}
+
+export const tariffMiscMonthly: Record<string, TariffMiscMonthlyItem> = {
+  '2026-01': { 容量补偿电价: 70.5, 上网环节线损: 11.9, 系统运行费: 54.6, 政府性基金及附加: 27.16875 },
+  '2026-03': { 容量补偿电价: 70.6, 上网环节线损: 11.6, 系统运行费: 68.7, 政府性基金及附加: 27.16875 },
+};
+
+// === TRANSMISSION PRICES (输配电价按电压等级) ===
+export interface TransmissionPriceRow {
+  category: string;
+  level: string;
   value: number;
   unit: string;
 }
 
-export const tariffMiscPrices: TariffMiscRow[] = [
-  { item: '输配电价', value: 142.5, unit: '元/MWh' },
-  { item: '政府性基金及附加', value: 23.8, unit: '元/MWh' },
-  { item: '系统运行费', value: 15.2, unit: '元/MWh' },
-  { item: '上网环节线损', value: 8.6, unit: '元/MWh' },
-  { item: '容量电费', value: 35.0, unit: '元/MWh' },
-  { item: '合计', value: 225.1, unit: '元/MWh' },
+export const tariffTransmissionPrices: TransmissionPriceRow[] = [
+  { category: '单一制', level: '不满1千伏', value: 221.9, unit: '元/MWh' },
+  { category: '单一制', level: '1-10(20)千伏', value: 206.9, unit: '元/MWh' },
+  { category: '单一制', level: '35千伏', value: 191.9, unit: '元/MWh' },
+  { category: '两部制电量电价', level: '1-10(20)千伏', value: 149.1, unit: '元/MWh' },
+  { category: '两部制电量电价', level: '35千伏', value: 134.1, unit: '元/MWh' },
+  { category: '两部制电量电价', level: '110千伏', value: 119.1, unit: '元/MWh' },
+  { category: '两部制电量电价', level: '220千伏及以上', value: 104.1, unit: '元/MWh' },
+  { category: '两部制需量电价', level: '1-10(20)千伏', value: 38.4, unit: '元/kW·月' },
+  { category: '两部制需量电价', level: '35千伏', value: 35.2, unit: '元/kW·月' },
+  { category: '两部制需量电价', level: '110千伏', value: 35.2, unit: '元/kW·月' },
+  { category: '两部制需量电价', level: '220千伏及以上', value: 32, unit: '元/kW·月' },
+  { category: '两部制容量电价', level: '1-10(20)千伏', value: 24, unit: '元/kVA·月' },
+  { category: '两部制容量电价', level: '35千伏', value: 22, unit: '元/kVA·月' },
+  { category: '两部制容量电价', level: '110千伏', value: 22, unit: '元/kVA·月' },
+  { category: '两部制容量电价', level: '220千伏及以上', value: 20, unit: '元/kVA·月' },
 ];
 
 // === SUPERVISION (事前监管) DATA ===
