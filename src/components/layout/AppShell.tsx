@@ -50,7 +50,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { logout } = useAuth();
 
   const activeParent = headerNavItems.find((item) =>
-    item.children.some((c) => location.pathname === c.path)
+    item.children.some((c) => !c.disabled && location.pathname === c.path)
   );
 
   return (
