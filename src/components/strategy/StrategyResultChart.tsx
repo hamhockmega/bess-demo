@@ -51,7 +51,7 @@ export const StrategyResultChart: React.FC<Props> = ({
               <ReferenceLine y={0} stroke="#DDE5DF" />
               <Bar dataKey="quotationPower" name="报量功率" fill={CHART_COLORS.primary} opacity={0.3} barSize={4} />
               <Line dataKey="awardedPower" name="中标功率" stroke={CHART_COLORS.deep} strokeWidth={1.5} dot={false} />
-              <Line dataKey="dayAheadPrice" name="日前价格" stroke={CHART_COLORS.amber} strokeWidth={1} dot={false} strokeDasharray="4 2" yAxisId="right" />
+              <Line dataKey="realTimePrice" name="实时价格" stroke={CHART_COLORS.amber} strokeWidth={1} dot={false} strokeDasharray="4 2" yAxisId="right" />
               <YAxis yAxisId="right" orientation="right" {...AXIS_STYLE} label={{ value: '元/MWh', position: 'insideTopRight', style: { fontSize: 10, fill: '#8A978F' } }} />
             </ComposedChart>
           </ResponsiveContainer>

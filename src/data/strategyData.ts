@@ -161,7 +161,7 @@ function generatePowerSeries(): PowerPoint[] {
       time,
       quotationPower: Math.round(quotationPower * 10) / 10,
       awardedPower: Math.round(awardedPower * 10) / 10,
-      dayAheadPrice: Math.round(dayAheadPrice * 100) / 100,
+      realTimePrice: Math.round(realTimePrice * 100) / 100,
     });
   }
   return points;

@@ -215,7 +215,7 @@ export default function ShortTermPriceForecast() {
 
 /* ── Sub-components ── */
 
-function SummaryBlock({ summary }: { summary: ForecastPriceSummary | PriceSummary }) {
+function SummaryBlock({ summary }: { summary: ForecastPriceSummary }) {
   return (
     <div className="bg-secondary border border-border rounded-lg p-4 space-y-3">
       <div className="text-sm font-semibold text-foreground">{summary.label}</div>
