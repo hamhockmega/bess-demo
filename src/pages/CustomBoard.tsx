@@ -73,7 +73,7 @@ function getStageOptions(config: WiredPanelConfig): string[] {
 }
 
 const PANEL_SUB_ITEMS: Record<string, string[]> = {
-  '节点电价(门前节点)': ['山东.福山', '山东.青岛', '山东.济南', '山东.烟台'],
+  
   '系统负荷': ['直调负荷', '全网负荷'],
   '联络线受电负荷': ['各联络线', '华北联络线', '华中联络线', '江苏联络线'],
   '新能源出力': ['风电出力', '光伏出力', '合计出力'],
