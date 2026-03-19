@@ -48,6 +48,13 @@ const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
   '统一结算价': { dbMetricName: '统一结算价', type: 'price', dbStages: ['实际'], unit: '元/MWh' },
   '联络线受电负荷': { dbMetricName: '联络线受电负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
   '系统负荷': { dbMetricName: '直调负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
+  // Renewable output metrics
+  '新能源出力': { dbMetricName: '新能源出力', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
+  // Weather metrics
+  '温度(全省算术平均)': { dbMetricName: '温度(全省算术平均)', type: 'load', dbStages: ['实际'], unit: '°C' },
+  '风速(风电装机容量加权)': { dbMetricName: '风速(风电装机容量加权)', type: 'load', dbStages: ['实际'], unit: 'm/s' },
+  '辐照(光伏装机容量加权)': { dbMetricName: '辐照(光伏装机容量加权)', type: 'load', dbStages: ['实际'], unit: 'W/m²' },
+  '降水量(全省算术平均)': { dbMetricName: '降水量(全省算术平均)', type: 'load', dbStages: ['实际'], unit: 'mm' },
 };
 
 /** Stage display names for wired panels */
@@ -126,6 +133,11 @@ const WiredPanel: React.FC<{
   const dbMetric = useMemo(() => {
     if (panelName === '系统负荷') {
       return subItem === '全网负荷' ? '全网负荷' : '直调负荷';
+    }
+    if (panelName === '新能源出力') {
+      if (subItem === '风电出力') return '风电出力';
+      if (subItem === '光伏出力') return '光伏出力';
+      return '新能源出力';
     }
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
