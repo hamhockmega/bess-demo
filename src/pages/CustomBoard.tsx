@@ -504,7 +504,10 @@ const CustomBoard: React.FC = () => {
   const getTimePeriod = (panel: string) => {
     const wired = WIRED_PANELS[panel as PanelName];
     if (wired) {
-      const stages = getStageOptions(wired);
+      // Use dynamic stages if available, otherwise static
+      const stages = (wired.dynamicPriceTypes && dynamicStages[panel]?.length)
+        ? dynamicStages[panel]
+        : getStageOptions(wired);
       return panelTimePeriod[panel] || stages[0];
     }
     return panelTimePeriod[panel] || '实时';
