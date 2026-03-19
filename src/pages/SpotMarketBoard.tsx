@@ -20,8 +20,6 @@ const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
     case '典型曲线': return <TypicalCurveCard />;
     case '峰谷及杂项单价': return <TariffCard />;
     case '市场供需情况': return <SupplyDemandCard />;
-    case '事前监管': return <SupervisionCard />;
-    case '出清前后对比': return <ClearingComparisonCard />;
   }
 };
 
