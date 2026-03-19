@@ -29,6 +29,8 @@ export interface StrategyForm {
   minSoc: number; // %
   minContinuousChargeTime: number; // h
   minContinuousDischargeTime: number; // h
+  chargingEfficiency: number; // % (e.g. 95)
+  dischargingEfficiency: number; // % (e.g. 94)
 }
 
 export interface QuotationSegment {
