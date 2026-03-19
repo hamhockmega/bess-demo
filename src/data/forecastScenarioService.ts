@@ -256,15 +256,33 @@ export function getForecastScenarioByDate(date: string): ForecastScenario | null
 
 /**
  * Load a forecast scenario, preferring real DB data over mock.
- * Async version that tries DB first.
+ * For front_node_price: tries SQL predicted real-time prices first,
+ * then falls back to market_scenarios, then deterministic mock.
  */
 export async function getForecastScenarioByDateAsync(date: string): Promise<ForecastScenario | null> {
   if (!date) return null;
   if (scenarioCache.has(date)) return scenarioCache.get(date)!;
 
-  // Try DB first
+  // Try DB market_scenarios first
   const dbScenario = await loadScenarioFromDb(date);
   if (dbScenario && dbScenario.intervals.length >= 90) {
+    // Try to enrich front_node_price with SQL predicted real-time prices
+    try {
+      const predicted = await fetchPredictedPriceSeries('节点电价(全省平均)', '实时电价', date);
+      if (predicted.points.length >= 90) {
+        const predictedMap = new Map(predicted.points.map(p => [p.intervalIndex, p.value]));
+        for (const iv of dbScenario.intervals) {
+          // Use 1-based index for DB mapping
+          const sqlPrice = predictedMap.get(iv.intervalIndex + 1) ?? predictedMap.get(iv.intervalIndex);
+          if (sqlPrice !== undefined) {
+            iv.frontNodePrice = sqlPrice;
+          }
+        }
+        dbScenario.source = '实际市场数据（预测电价已导入）';
+      }
+    } catch {
+      // SQL predicted prices unavailable, keep original DB values
+    }
     scenarioCache.set(date, dbScenario);
     return dbScenario;
   }
