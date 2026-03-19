@@ -515,10 +515,13 @@ const CustomBoard: React.FC = () => {
     const wired = WIRED_PANELS[panel as PanelName];
     if (wired) {
       // Use dynamic stages if available, otherwise static
-      const stages = (wired.dynamicPriceTypes && dynamicStages[panel]?.length)
+      const stages = dynamicStages[panel]?.length
         ? dynamicStages[panel]
         : getStageOptions(wired);
-      return panelTimePeriod[panel] || stages[0];
+      const selected = panelTimePeriod[panel];
+      // Auto-switch: if selected stage is not in available stages, use first available
+      if (selected && stages.includes(selected)) return selected;
+      return stages[0] || '实际';
     }
     return panelTimePeriod[panel] || '实时';
   };
