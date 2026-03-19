@@ -63,48 +63,6 @@ export async function fetchPriceSeries(
   };
 }
 
-/**
- * Fetch SQL-backed predicted price series (source_stage = '智能预测').
- * Returns empty points array if no SQL predicted data exists.
- */
-export async function fetchPredictedPriceSeries(
-  metricName: string,
-  priceType: string,
-  scenarioDate: string,
-  nodeName?: string,
-): Promise<PriceSeriesResult> {
-  let query = supabase
-    .from('market_price_points')
-    .select('interval_index, value, unit')
-    .eq('metric_name', metricName)
-    .eq('price_type', priceType)
-    .eq('scenario_date', scenarioDate)
-    .eq('source_stage', '智能预测')
-    .order('interval_index', { ascending: true });
-
-  if (nodeName) {
-    query = query.eq('node_name', nodeName);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    console.warn(`智能预测数据查询失败(${metricName}/${priceType}): ${error.message}`);
-    return { points: [], unit: '元/MWh', sourceStage: '智能预测', isIncomplete: false };
-  }
-
-  const rows = data ?? [];
-  return {
-    points: rows.map(r => ({
-      intervalIndex: r.interval_index,
-      time: formatIntervalTime(r.interval_index),
-      value: Number(r.value),
-    })),
-    unit: rows[0]?.unit || '元/MWh',
-    sourceStage: '智能预测',
-    isIncomplete: rows.length > 0 && rows.length < 96,
-  };
-}
-
 /* ── Forecast page: dual price-type query ── */
 
 export interface ForecastPointRow {

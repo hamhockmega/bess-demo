@@ -146,48 +146,6 @@ export type Database = {
         }
         Relationships: []
       }
-      market_strategy_forecast_scenarios: {
-        Row: {
-          actual_award_signal: boolean | null
-          actual_load: number | null
-          created_at: string
-          front_node_price: number
-          id: number
-          interval_index: number
-          predicted_day_ahead_price: number | null
-          predicted_real_time_price: number | null
-          remark: string | null
-          scenario_date: string
-          user_settlement_price: number | null
-        }
-        Insert: {
-          actual_award_signal?: boolean | null
-          actual_load?: number | null
-          created_at?: string
-          front_node_price: number
-          id?: number
-          interval_index: number
-          predicted_day_ahead_price?: number | null
-          predicted_real_time_price?: number | null
-          remark?: string | null
-          scenario_date: string
-          user_settlement_price?: number | null
-        }
-        Update: {
-          actual_award_signal?: boolean | null
-          actual_load?: number | null
-          created_at?: string
-          front_node_price?: number
-          id?: number
-          interval_index?: number
-          predicted_day_ahead_price?: number | null
-          predicted_real_time_price?: number | null
-          remark?: string | null
-          scenario_date?: string
-          user_settlement_price?: number | null
-        }
-        Relationships: []
-      }
       metric_catalog: {
         Row: {
           created_at: string
