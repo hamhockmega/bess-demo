@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import iwattLogo from '@/assets/iwatt-logo.png';
 
 const headerNavItems = [
@@ -33,6 +34,7 @@ const headerNavItems = [
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const activeParent = headerNavItems.find((item) =>
     item.children.some((c) => location.pathname === c.path)
@@ -82,6 +84,13 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </span>
           <span className="text-white/60">|</span>
           <span>管理员</span>
+          <span className="text-white/60">|</span>
+          <button
+            onClick={() => { logout(); navigate('/login', { replace: true }); }}
+            className="text-white/70 hover:text-white transition-colors"
+          >
+            退出登录
+          </button>
         </div>
       </header>
 
