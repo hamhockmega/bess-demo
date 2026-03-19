@@ -365,10 +365,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
               <div className="space-y-4 pt-2">
                 <StrategyPerformanceSummary perf={performance} />
                 <StrategyRevenueBreakdown perf={performance} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <StrategyAwardProbabilityPanel perf={performance} />
-                  <StrategyCalculationLogicPanel perf={performance} />
-                </div>
+                <StrategyCalculationLogicPanel perf={performance} />
               </div>
             )}
           </>
