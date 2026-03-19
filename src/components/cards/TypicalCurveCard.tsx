@@ -10,14 +10,13 @@ import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
+import { useMetricSemantics, effectiveRules, getDbStages, getAllValidStages } from '@/data/metricSemantics';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 const LOAD_METRICS = ['直调负荷', '全网负荷', '联络线受电负荷'];
 
 /** Metrics wired to Supabase for this card */
 const SUPABASE_METRICS = new Set(['直调负荷', '全网负荷', '联络线受电负荷']);
-
-const SCENARIO_TABS: Scenario[] = ['出清前上午', '出清前下午', '出清后', '实际', '周前', '智能预测'];
 
 const SERIES_COLORS: Record<string, string> = {
   '出清前上午': CHART_COLORS.primary,
@@ -30,14 +29,27 @@ const SERIES_COLORS: Record<string, string> = {
 
 export const TypicalCurveCard: React.FC = () => {
   const { selectedInterval, curveMetric, setCurveMetric, queryDate } = useDashboardStore();
-  const [activeScenarios, setActiveScenarios] = useState<Scenario[]>(['出清前上午', '出清后', '实际']);
 
   const useSupabase = SUPABASE_METRICS.has(curveMetric);
 
-  // ── Supabase query (only for wired metrics) ──
+  // ── Metric semantics ──
+  const { data: semanticsData } = useMetricSemantics();
+  const rules = effectiveRules(semanticsData?.rules);
+  const dbStages = useMemo(() => getDbStages(rules, curveMetric), [rules, curveMetric]);
+  const validStages = useMemo(() => getAllValidStages(rules, curveMetric), [rules, curveMetric]);
+
+  // Valid scenario tabs – only stages that exist in rules
+  const scenarioTabs = useMemo<Scenario[]>(() => {
+    if (!useSupabase) return ['出清前上午', '出清后', '实际', '周前'];
+    return validStages as Scenario[];
+  }, [useSupabase, validStages]);
+
+  const [activeScenarios, setActiveScenarios] = useState<Scenario[]>(['出清前上午', '出清后', '实际']);
+
+  // ── Supabase query (only DB-backed stages) ──
   const { data: supabaseResult, isLoading, isError, error } = useQuery({
-    queryKey: ['curveMetricPoints', curveMetric, queryDate],
-    queryFn: () => fetchTrendMetricPoints(curveMetric, queryDate),
+    queryKey: ['curveMetricPoints', curveMetric, queryDate, dbStages],
+    queryFn: () => fetchTrendMetricPoints(curveMetric, queryDate, '全省', dbStages.length > 0 ? dbStages : undefined),
     enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
@@ -88,7 +100,7 @@ export const TypicalCurveCard: React.FC = () => {
     );
   };
 
-  // ── Available scenario tabs (only show those present in data) ──
+  // Available scenario set (only show stages present in data)
   const availableScenarioSet = useMemo(() => new Set(allSeries.map(s => s.scenario)), [allSeries]);
 
   // ── Loading state ──
@@ -123,7 +135,7 @@ export const TypicalCurveCard: React.FC = () => {
         <div className="flex flex-col h-full gap-3">
           <DashboardTabs tabs={LOAD_METRICS} activeTab={curveMetric} onTabChange={setCurveMetric} size="md" />
           <div className="flex items-center justify-center flex-1 text-muted-foreground">
-            <span className="text-sm">未找到所选指标的场景数据</span>
+            <span className="text-sm">当前指标暂无可用场景数据</span>
           </div>
         </div>
       </PanelCard>
@@ -136,7 +148,7 @@ export const TypicalCurveCard: React.FC = () => {
       headerRight={
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
-            {SCENARIO_TABS.map(s => (
+            {scenarioTabs.map(s => (
               <button
                 key={s}
                 onClick={() => toggleScenario(s)}
@@ -148,6 +160,7 @@ export const TypicalCurveCard: React.FC = () => {
                       ? 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
                       : 'text-muted-foreground/40 bg-secondary/50 border border-transparent cursor-not-allowed'
                 }`}
+                title={!availableScenarioSet.has(s) ? '当前指标不支持该数据口径' : undefined}
               >
                 {s}
               </button>
