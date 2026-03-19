@@ -50,11 +50,17 @@ const ReviewQuoteStrategy: React.FC = () => {
     }
   }, []);
 
-  const handleLoadScenario = useCallback(() => {
-    const s = actualScenarioRepository.getByDate(reviewDate);
-    setScenario(s);
-    setScenarioLoaded(true);
-    toast.success(`已加载 ${reviewDate} 实际场景数据`);
+  const handleLoadScenario = useCallback(async () => {
+    const s = await actualScenarioRepository.getByDate(reviewDate);
+    if (s) {
+      setScenario(s);
+      setScenarioLoaded(true);
+      toast.success(`已加载 ${reviewDate} 实际场景数据（${s.frontNodePrices.filter(p => p > 0).length} 个有效时段）`);
+    } else {
+      setScenario(null);
+      setScenarioLoaded(false);
+      toast.error(`未找到 ${reviewDate} 的市场场景数据，请确认日期是否正确`);
+    }
   }, [reviewDate]);
 
   const handleStartReview = useCallback(() => {
