@@ -136,25 +136,23 @@ function generatePowerSeries(): PowerPoint[] {
     let quotationPower = 0;
     let dayAheadPrice = 0;
 
+    let realTimePrice = 0;
+
     if (h >= 1 && h < 6) {
-      // Night charging
       quotationPower = -(60 + Math.random() * 30);
-      dayAheadPrice = 120 + Math.random() * 80;
+      realTimePrice = 120 + Math.random() * 80;
     } else if (h >= 8 && h < 11) {
-      // Morning peak discharge
       quotationPower = 50 + Math.random() * 40;
-      dayAheadPrice = 350 + Math.random() * 150;
+      realTimePrice = 350 + Math.random() * 150;
     } else if (h >= 13 && h < 15) {
-      // Afternoon valley - charge
       quotationPower = -(30 + Math.random() * 40);
-      dayAheadPrice = 150 + Math.random() * 60;
+      realTimePrice = 150 + Math.random() * 60;
     } else if (h >= 17 && h < 21) {
-      // Evening peak discharge
       quotationPower = 60 + Math.random() * 35;
-      dayAheadPrice = 400 + Math.random() * 200;
+      realTimePrice = 400 + Math.random() * 200;
     } else {
       quotationPower = (Math.random() - 0.5) * 20;
-      dayAheadPrice = 200 + Math.random() * 100;
+      realTimePrice = 200 + Math.random() * 100;
     }
 
     const awardedPower = quotationPower * (0.85 + Math.random() * 0.15);
