@@ -50,6 +50,116 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_segments: {
+        Row: {
+          created_at: string
+          direction: string
+          end_power: number | null
+          id: number
+          offer_price: number
+          segment_no: number
+          start_power: number | null
+          strategy_id: number
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          end_power?: number | null
+          id?: number
+          offer_price: number
+          segment_no: number
+          start_power?: number | null
+          strategy_id: number
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          end_power?: number | null
+          id?: number
+          offer_price?: number
+          segment_no?: number
+          start_power?: number | null
+          strategy_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_segments_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategy_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategy_snapshots: {
+        Row: {
+          capacity: number
+          charge_power_limit: number
+          charge_price_trigger: number
+          charging_efficiency: number
+          created_at: string
+          discharge_power_limit: number
+          discharge_price_trigger: number
+          discharging_efficiency: number
+          expected_award_probability: number | null
+          expected_profit: number | null
+          generated_at: string | null
+          id: number
+          initial_soc: number
+          notes: string | null
+          other_costs: number
+          soc_max: number
+          soc_min: number
+          strategy_date: string
+          strategy_name: string
+          strategy_source_type: string
+        }
+        Insert: {
+          capacity: number
+          charge_power_limit: number
+          charge_price_trigger: number
+          charging_efficiency: number
+          created_at?: string
+          discharge_power_limit: number
+          discharge_price_trigger: number
+          discharging_efficiency: number
+          expected_award_probability?: number | null
+          expected_profit?: number | null
+          generated_at?: string | null
+          id?: number
+          initial_soc: number
+          notes?: string | null
+          other_costs?: number
+          soc_max: number
+          soc_min: number
+          strategy_date: string
+          strategy_name: string
+          strategy_source_type: string
+        }
+        Update: {
+          capacity?: number
+          charge_power_limit?: number
+          charge_price_trigger?: number
+          charging_efficiency?: number
+          created_at?: string
+          discharge_power_limit?: number
+          discharge_price_trigger?: number
+          discharging_efficiency?: number
+          expected_award_probability?: number | null
+          expected_profit?: number | null
+          generated_at?: string | null
+          id?: number
+          initial_soc?: number
+          notes?: string | null
+          other_costs?: number
+          soc_max?: number
+          soc_min?: number
+          strategy_date?: string
+          strategy_name?: string
+          strategy_source_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
