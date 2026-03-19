@@ -77,6 +77,7 @@ export interface GeneratedStrategy {
   strategyName: string;
   status: '已生成' | '参数已调整';
   quotationSegments: QuotationSegment[];
+  schedulePoints: SchedulePoint[];
   powerSeries: PowerPoint[];
   socSeries: SocPoint[];
   energySeries: EnergyPoint[];
