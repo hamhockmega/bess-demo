@@ -19,8 +19,10 @@ const SOURCE_STAGE_TO_SCENARIO: Record<string, Scenario> = {
 };
 
 function formatIntervalTime(idx: number): string {
-  const h = Math.floor(idx / 4);
-  const m = (idx % 4) * 15;
+  // interval_index is 1-based (1..96), convert to 0-based for time calc
+  const zeroBasedIdx = idx - 1;
+  const h = Math.floor(zeroBasedIdx / 4);
+  const m = (zeroBasedIdx % 4) * 15;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
