@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
-import { Download, Play, CalendarDays } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Play, CalendarDays, Loader2 } from 'lucide-react';
 import type { StrategySnapshot } from '@/data/reviewData';
+import type { StrategySnapshotListItem } from '@/data/reviewSupabaseQueries';
 
 export type StrategySourceMode = 'previous' | 'manual';
 
@@ -17,10 +19,15 @@ interface Props {
   onReviewDateChange: (date: string) => void;
   loadedStrategy: StrategySnapshot | null;
   scenarioLoaded: boolean;
-  onLoadStrategy: () => void;
   onLoadScenario: () => void;
   onStartReview: () => void;
   isReviewReady: boolean;
+  strategyList: StrategySnapshotListItem[];
+  selectedStrategyId: number | null;
+  onSelectStrategy: (id: number) => void;
+  strategyLoading: boolean;
+  scenarioLoading: boolean;
+  reviewLoading: boolean;
 }
 
 export const ReviewSourceSelector: React.FC<Props> = ({
@@ -30,10 +37,15 @@ export const ReviewSourceSelector: React.FC<Props> = ({
   onReviewDateChange,
   loadedStrategy,
   scenarioLoaded,
-  onLoadStrategy,
   onLoadScenario,
   onStartReview,
   isReviewReady,
+  strategyList,
+  selectedStrategyId,
+  onSelectStrategy,
+  strategyLoading,
+  scenarioLoading,
+  reviewLoading,
 }) => {
   return (
     <PanelCard title="复盘对象配置">
@@ -61,28 +73,29 @@ export const ReviewSourceSelector: React.FC<Props> = ({
           {sourceMode === 'previous' && (
             <>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">策略日期</Label>
-                <Input
-                  type="date"
-                  value={reviewDate}
-                  onChange={(e) => onReviewDateChange(e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">已加载策略</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">选择策略</Label>
                 <div className="flex items-center gap-2">
-                  {loadedStrategy ? (
-                    <Badge variant="outline" className="status-pill-success text-xs">
-                      {loadedStrategy.strategyName}
+                  <Select
+                    value={selectedStrategyId != null ? String(selectedStrategyId) : undefined}
+                    onValueChange={(v) => onSelectStrategy(Number(v))}
+                  >
+                    <SelectTrigger className="h-8 text-xs flex-1">
+                      <SelectValue placeholder={strategyList.length === 0 ? '暂无可用策略' : '请选择策略'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {strategyList.map((s) => (
+                        <SelectItem key={s.id} value={String(s.id)} className="text-xs">
+                          {s.strategyName}（{s.strategyDate}）
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {strategyLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  {loadedStrategy && !strategyLoading && (
+                    <Badge variant="outline" className="status-pill-success text-xs whitespace-nowrap">
+                      已加载
                     </Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">未加载</span>
                   )}
-                  <Button variant="outline" size="sm" onClick={onLoadStrategy} className="h-7 text-xs">
-                    <Download className="w-3 h-3 mr-1" />
-                    加载策略
-                  </Button>
                 </div>
               </div>
             </>
@@ -97,8 +110,18 @@ export const ReviewSourceSelector: React.FC<Props> = ({
                 onChange={(e) => onReviewDateChange(e.target.value)}
                 className="h-8 text-xs"
               />
-              <Button variant="outline" size="sm" onClick={onLoadScenario} className="h-7 text-xs">
-                <CalendarDays className="w-3 h-3 mr-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLoadScenario}
+                disabled={scenarioLoading}
+                className="h-7 text-xs"
+              >
+                {scenarioLoading ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <CalendarDays className="w-3 h-3 mr-1" />
+                )}
                 加载实际场景
               </Button>
               {scenarioLoaded && (
@@ -113,9 +136,13 @@ export const ReviewSourceSelector: React.FC<Props> = ({
           <Button
             size="sm"
             onClick={onStartReview}
-            disabled={!isReviewReady}
+            disabled={!isReviewReady || reviewLoading}
           >
-            <Play className="w-3.5 h-3.5 mr-1" />
+            {reviewLoading ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+            ) : (
+              <Play className="w-3.5 h-3.5 mr-1" />
+            )}
             开始复盘
           </Button>
         </div>

@@ -1,6 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReviewSourceSelector, type StrategySourceMode } from '@/components/review/ReviewSourceSelector';
 import { ManualStrategyInputForm } from '@/components/review/ManualStrategyInputForm';
@@ -13,55 +12,127 @@ import { ReviewSocChart } from '@/components/review/ReviewSocChart';
 import { ReviewCalculationLogicPanel } from '@/components/review/ReviewCalculationLogicPanel';
 import { toast } from 'sonner';
 import {
-  strategySnapshotRepository,
-  actualScenarioRepository,
   runReview,
   getDefaultManualStrategy,
   type StrategySnapshot,
   type ActualScenario,
   type ReviewResult,
 } from '@/data/reviewData';
+import {
+  listStrategySnapshots,
+  getStrategySnapshotById,
+  getStrategySegmentsByStrategyId,
+  getScenarioByDate,
+  type StrategySnapshotListItem,
+  type StrategySegment,
+} from '@/data/reviewSupabaseQueries';
 
 const ReviewQuoteStrategy: React.FC = () => {
-  // Get yesterday as default date
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const defaultDate = yesterday.toISOString().slice(0, 10);
 
   const [sourceMode, setSourceMode] = useState<StrategySourceMode>('previous');
   const [reviewDate, setReviewDate] = useState(defaultDate);
+
+  // Strategy list from Supabase
+  const [strategyList, setStrategyList] = useState<StrategySnapshotListItem[]>([]);
+  const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(null);
   const [loadedStrategy, setLoadedStrategy] = useState<StrategySnapshot | null>(null);
+  const [loadedSegments, setLoadedSegments] = useState<StrategySegment[]>([]);
+  const [strategyLoading, setStrategyLoading] = useState(false);
+
+  // Manual mode
   const [manualStrategy, setManualStrategy] = useState<StrategySnapshot>(getDefaultManualStrategy());
+
+  // Scenario
   const [scenarioLoaded, setScenarioLoaded] = useState(false);
   const [scenario, setScenario] = useState<ActualScenario | null>(null);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
+
+  // Result
   const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const activeStrategy = sourceMode === 'previous' ? loadedStrategy : manualStrategy;
   const isReviewReady = !!activeStrategy && scenarioLoaded && (sourceMode === 'manual' ? !!manualStrategy.strategyName : true);
 
-  const handleLoadStrategy = useCallback(() => {
-    const snapshot = strategySnapshotRepository.getLatest();
-    if (snapshot) {
-      setLoadedStrategy(snapshot);
-      toast.success(`已加载策略：${snapshot.strategyName}`);
-    } else {
-      toast.info('未找到已保存的策略，已加载演示策略');
-      setLoadedStrategy(strategySnapshotRepository.getLatest());
-    }
+  // Load strategy list on mount
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await listStrategySnapshots();
+      if (error) {
+        toast.error(error);
+      } else if (data.length === 0) {
+        toast.info('未找到可用策略快照');
+      }
+      setStrategyList(data);
+    })();
   }, []);
 
-  const handleLoadScenario = useCallback(() => {
-    const s = actualScenarioRepository.getByDate(reviewDate);
-    setScenario(s);
+  // When user selects a strategy from dropdown
+  const handleSelectStrategy = useCallback(async (id: number) => {
+    setSelectedStrategyId(id);
+    setStrategyLoading(true);
+    setLoadedStrategy(null);
+    setLoadedSegments([]);
+    setReviewResult(null);
+
+    const [snapshotRes, segmentsRes] = await Promise.all([
+      getStrategySnapshotById(id),
+      getStrategySegmentsByStrategyId(id),
+    ]);
+
+    setStrategyLoading(false);
+
+    if (snapshotRes.error) {
+      toast.error(snapshotRes.error);
+      return;
+    }
+    if (segmentsRes.error) {
+      toast.warning(segmentsRes.error);
+    }
+
+    setLoadedStrategy(snapshotRes.data);
+    setLoadedSegments(segmentsRes.data);
+    toast.success(`已加载策略：${snapshotRes.data?.strategyName}`);
+  }, []);
+
+  // Load scenario
+  const handleLoadScenario = useCallback(async () => {
+    setScenarioLoading(true);
+    setScenarioLoaded(false);
+    setScenario(null);
+    setReviewResult(null);
+
+    const { data, intervalCount, error } = await getScenarioByDate(reviewDate);
+    setScenarioLoading(false);
+
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    if (intervalCount !== 96) {
+      toast.warning(`所选日期的场景数据不完整，当前仅加载到 ${intervalCount} 个时段`);
+    }
+
+    setScenario(data);
     setScenarioLoaded(true);
-    toast.success(`已加载 ${reviewDate} 实际场景数据`);
+    toast.success(`已加载 ${reviewDate} 实际场景数据（${intervalCount} 个时段）`);
   }, [reviewDate]);
 
+  // Run review
   const handleStartReview = useCallback(() => {
     if (!activeStrategy || !scenario) return;
-    const result = runReview(activeStrategy, scenario);
-    setReviewResult(result);
-    toast.success('复盘计算完成');
+    setReviewLoading(true);
+    // Use setTimeout to let UI update
+    setTimeout(() => {
+      const result = runReview(activeStrategy, scenario);
+      setReviewResult(result);
+      setReviewLoading(false);
+      toast.success('复盘计算完成');
+    }, 50);
   }, [activeStrategy, scenario]);
 
   return (
@@ -90,10 +161,15 @@ const ReviewQuoteStrategy: React.FC = () => {
           onReviewDateChange={setReviewDate}
           loadedStrategy={loadedStrategy}
           scenarioLoaded={scenarioLoaded}
-          onLoadStrategy={handleLoadStrategy}
           onLoadScenario={handleLoadScenario}
           onStartReview={handleStartReview}
           isReviewReady={isReviewReady}
+          strategyList={strategyList}
+          selectedStrategyId={selectedStrategyId}
+          onSelectStrategy={handleSelectStrategy}
+          strategyLoading={strategyLoading}
+          scenarioLoading={scenarioLoading}
+          reviewLoading={reviewLoading}
         />
 
         {/* Manual input form */}
@@ -107,23 +183,12 @@ const ReviewQuoteStrategy: React.FC = () => {
         {/* Results */}
         {reviewResult && (
           <div className="space-y-4">
-            {/* 2. Single-day review result */}
             <SingleDayReviewSummary result={reviewResult} />
-
-            {/* 3. Revenue breakdown */}
             <ReviewRevenueBreakdownPanel result={reviewResult} />
-
-            {/* 4. Strategy review comparison */}
             <StrategyReviewComparison result={reviewResult} />
-
-            {/* 5. Review conclusion */}
             <ReviewConclusionPanel result={reviewResult} />
-
-            {/* 6. Charts */}
             <ReviewExecutionChart result={reviewResult} />
             <ReviewSocChart result={reviewResult} />
-
-            {/* 7. Calculation logic */}
             <ReviewCalculationLogicPanel />
           </div>
         )}
