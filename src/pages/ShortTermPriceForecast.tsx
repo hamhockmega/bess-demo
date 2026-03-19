@@ -145,7 +145,7 @@ export default function ShortTermPriceForecast() {
         {useSupabase && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
             <Info className="w-3.5 h-3.5" />
-            数据来源：实际结算数据（source_stage = 实际）
+            数据来源：market_price_points（日前电价 + 实时电价，source_stage = 实际）
           </div>
         )}
 
