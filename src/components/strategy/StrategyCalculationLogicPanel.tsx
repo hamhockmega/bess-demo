@@ -52,30 +52,6 @@ export const StrategyCalculationLogicPanel: React.FC<Props> = ({ perf }) => {
         </div>
       </PanelCard>
 
-      <PanelCard title="演示讲解参考">
-        <div className="text-[11px] text-muted-foreground leading-relaxed bg-secondary border border-border rounded-lg p-4">
-          <p className="mb-2">
-            "本策略基于日前价格预测，在低价时段安排充电 <strong className="text-foreground">{perf.chargeEnergy} MWh</strong>，
-            平均充电电价为 <strong className="text-foreground">{perf.averageChargePrice} 元/MWh</strong>；
-            在高价时段安排放电，平均放电电价为 <strong className="text-foreground">{perf.averageDischargePrice} 元/MWh</strong>。"
-          </p>
-          <p className="mb-2">
-            "考虑到电池系统的充电效率 {perf.chargingEfficiency}% 和放电效率 {perf.dischargingEfficiency}%，
-            综合效率约为 {((perf.chargingEfficiency / 100) * (perf.dischargingEfficiency / 100) * 100).toFixed(1)}%，
-            实际有效放电电量为 <strong className="text-foreground">{perf.effectiveDischargeEnergy} MWh</strong>。"
-          </p>
-          <p className="mb-2">
-            "预计峰谷价差套利毛收益为 <strong className="text-foreground">{perf.grossArbitrageIncome.toLocaleString()} 元</strong>，
-            扣除其它成本 {perf.otherCosts.toLocaleString()} 元后，
-            净收益为 <strong className={perf.netProfit >= 0 ? 'text-dashboard-green' : 'text-dashboard-red'}>{perf.netProfit.toLocaleString()} 元</strong>。"
-          </p>
-          <p>
-            "当前策略中标概率为 <strong className="text-foreground">{perf.awardProbability}%</strong>，
-            风险等级为<strong className="text-foreground">{perf.riskLevel}</strong>。
-            整体策略在收益和安全性之间取得了合理平衡。"
-          </p>
-        </div>
-      </PanelCard>
     </div>
   );
 };

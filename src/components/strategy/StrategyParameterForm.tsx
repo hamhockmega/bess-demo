@@ -94,7 +94,6 @@ export const StrategyParameterForm: React.FC<Props> = ({ form, onChange }) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="单日收益最优">单日收益最优</SelectItem>
-                <SelectItem value="风险最小化">风险最小化</SelectItem>
                 <div
                   className="relative flex w-full cursor-not-allowed select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-xs text-muted-foreground/50"
                   onClick={(e) => {

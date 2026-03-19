@@ -2,9 +2,22 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import iwattLogo from '@/assets/iwatt-logo.png';
 
-const headerNavItems = [
+interface NavChild {
+  label: string;
+  path: string;
+  disabled?: boolean;
+}
+
+interface NavItem {
+  label: string;
+  path: string;
+  children: NavChild[];
+}
+
+const headerNavItems: NavItem[] = [
   {
     label: '交易看板',
     path: '/spotMarketBoard',
@@ -26,6 +39,7 @@ const headerNavItems = [
     path: '/spotTrading/intelligentQuoteStrategy',
     children: [
       { label: '智能策略(报量报价)', path: '/spotTrading/intelligentQuoteStrategy' },
+      { label: '智能策略(自调度)', path: '#', disabled: true },
       { label: '策略复盘(报量报价)', path: '/spotTrading/reviewQuoteStrategy' },
     ],
   },
@@ -37,7 +51,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { logout } = useAuth();
 
   const activeParent = headerNavItems.find((item) =>
-    item.children.some((c) => location.pathname === c.path)
+    item.children.some((c) => !c.disabled && location.pathname === c.path)
   );
 
   return (
@@ -97,16 +111,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Secondary nav — light surface tabs */}
       <div className="h-10 bg-card border-b border-border flex items-center px-5 shrink-0">
         {activeParent?.children.map((child) => {
-          const isActive = location.pathname === child.path;
+          const isActive = !child.disabled && location.pathname === child.path;
           return (
             <button
-              key={child.path}
-              onClick={() => navigate(child.path)}
+              key={child.label}
+              onClick={() => {
+                if (child.disabled) {
+                  toast.error('权限未开通，请联系管理员配置');
+                  return;
+                }
+                navigate(child.path);
+              }}
               className={cn(
                 'px-4 py-2 text-sm transition-all duration-200 relative',
-                isActive
-                  ? 'text-primary font-medium tab-active-indicator'
-                  : 'text-muted-foreground hover:text-foreground'
+                child.disabled
+                  ? 'text-muted-foreground/40 cursor-not-allowed'
+                  : isActive
+                    ? 'text-primary font-medium tab-active-indicator'
+                    : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {child.label}
