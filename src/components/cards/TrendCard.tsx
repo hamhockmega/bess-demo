@@ -10,14 +10,14 @@ import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } fro
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
 import { findSeriesByMetric, type Scenario } from '@/data/mockData';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { useMetricSemantics, effectiveRules, getDbStages, getDerivedStages, getAllValidStages } from '@/data/metricSemantics';
+import { derivePredictionSeries } from '@/data/derivedPrediction';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
 
 const METRIC_TABS = ['日前电价-发电侧均价', '实时电价-发电侧均价', '日前中标功率', '实时中标功率'];
 
 /** Metrics that are wired to Supabase */
 const SUPABASE_METRICS = new Set(['日前电价-发电侧均价', '实时电价-发电侧均价', '直调负荷']);
-
-const SCENARIO_TABS: Scenario[] = ['出清前上午', '出清前下午', '出清后', '实际', '智能预测'];
 
 const SERIES_COLORS: Record<string, string> = {
   '出清前上午': CHART_COLORS.primary,
@@ -36,10 +36,19 @@ export const TrendCard: React.FC = () => {
 
   const useSupabase = SUPABASE_METRICS.has(trendMetric);
 
-  // ── Supabase query (only for wired metrics) ──
+  // ── Metric semantics ──
+  const { data: semanticsData } = useMetricSemantics();
+  const rules = effectiveRules(semanticsData?.rules);
+
+  // Get valid stages from rules
+  const dbStages = useMemo(() => getDbStages(rules, trendMetric), [rules, trendMetric]);
+  const derivedStageRules = useMemo(() => getDerivedStages(rules, trendMetric), [rules, trendMetric]);
+  const validStages = useMemo(() => getAllValidStages(rules, trendMetric), [rules, trendMetric]);
+
+  // ── Supabase query (only DB-backed stages) ──
   const { data: supabaseResult, isLoading, isError, error } = useQuery({
-    queryKey: ['trendMetricPoints', trendMetric, queryDate],
-    queryFn: () => fetchTrendMetricPoints(trendMetric, queryDate),
+    queryKey: ['trendMetricPoints', trendMetric, queryDate, dbStages],
+    queryFn: () => fetchTrendMetricPoints(trendMetric, queryDate, '全省', dbStages.length > 0 ? dbStages : undefined),
     enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
@@ -51,16 +60,37 @@ export const TrendCard: React.FC = () => {
     return findSeriesByMetric(trendMetric, '全省', queryDate);
   }, [trendMetric, queryDate, useSupabase]);
 
-  // ── Unified series list ──
+  // ── Unified series list with frontend-derived stages ──
   const availableSeries = useMemo(() => {
-    if (useSupabase) return supabaseResult?.series ?? [];
-    return mockSeries;
-  }, [useSupabase, supabaseResult, mockSeries]);
+    const baseSeries = useSupabase ? (supabaseResult?.series ?? []) : mockSeries;
+
+    // Add frontend-derived stages (e.g. 智能预测 for price metrics)
+    const enriched = [...baseSeries];
+    for (const derivedRule of derivedStageRules) {
+      const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
+      if (sourceSeries && !enriched.some(s => s.scenario === derivedRule.source_stage as Scenario)) {
+        enriched.push(derivePredictionSeries(sourceSeries));
+      }
+    }
+    return enriched;
+  }, [useSupabase, supabaseResult, mockSeries, derivedStageRules]);
 
   const isIncomplete = useSupabase && (supabaseResult?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && availableSeries.length === 0;
 
-  const availableScenarios = useMemo(() => availableSeries.map(s => s.scenario), [availableSeries]);
+  // Dynamic scenario tabs based on rules
+  const scenarioTabs = useMemo(() => {
+    if (!useSupabase) {
+      // For mock data, use available scenarios
+      return availableSeries.map(s => s.scenario);
+    }
+    // For Supabase metrics, use valid stages from rules filtered to available data
+    return validStages.filter(stage =>
+      availableSeries.some(s => s.scenario === stage)
+    ) as Scenario[];
+  }, [useSupabase, validStages, availableSeries]);
+
+  const hasDerived = derivedStageRules.length > 0;
 
   const chartData = useMemo(() => {
     if (availableSeries.length === 0) return [];
@@ -127,7 +157,11 @@ export const TrendCard: React.FC = () => {
       title="行情趋势"
       headerRight={
         <div className="flex items-center gap-2">
-          <DashboardTabs tabs={SCENARIO_TABS.filter(s => availableScenarios.includes(s))} activeTab={trendScenario} onTabChange={(t) => setTrendScenario(t as Scenario)} />
+          <DashboardTabs
+            tabs={scenarioTabs}
+            activeTab={trendScenario}
+            onTabChange={(t) => setTrendScenario(t as Scenario)}
+          />
           <ChartInfoButton info={CHART_INFO.trend} />
         </div>
       }
@@ -140,6 +174,13 @@ export const TrendCard: React.FC = () => {
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
             <AlertTriangle className="w-3.5 h-3.5" />
             当前场景数据不完整
+          </div>
+        )}
+
+        {hasDerived && trendScenario === '智能预测' && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
+            <Info className="w-3.5 h-3.5" />
+            智能预测为前端派生展示值
           </div>
         )}
 
@@ -167,6 +208,7 @@ export const TrendCard: React.FC = () => {
                   strokeWidth={s.scenario === trendScenario ? 2.5 : 1.5}
                   dot={false}
                   animationDuration={500}
+                  strokeDasharray={s.scenario === '智能预测' ? '6 3' : undefined}
                 />
               ))}
             </LineChart>

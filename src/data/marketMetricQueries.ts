@@ -1,6 +1,6 @@
 /**
  * Supabase queries for market_metric_points table.
- * Used by the 行情趋势 module on SpotMarketBoard.
+ * Used by TrendCard, TypicalCurveCard, ShortTermPriceForecast, and CustomBoard.
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { DataPoint, MetricSeries, Scenario } from './mockData';
@@ -18,7 +18,7 @@ const SOURCE_STAGE_TO_SCENARIO: Record<string, Scenario> = {
   '交易结果': '交易结果',
 };
 
-function formatIntervalTime(idx: number): string {
+export function formatIntervalTime(idx: number): string {
   // interval_index is 1-based (1..96), convert to 0-based for time calc
   const zeroBasedIdx = idx - 1;
   const h = Math.floor(zeroBasedIdx / 4);
@@ -33,20 +33,28 @@ export interface TrendQueryResult {
 }
 
 /**
- * Fetch metric points from Supabase for the 行情趋势 card.
+ * Fetch metric points from Supabase for a given metric and date.
+ * Optionally filter by specific source_stage values.
  * Returns data grouped by source_stage as MetricSeries[].
  */
 export async function fetchTrendMetricPoints(
   metricName: string,
   scenarioDate: string,
   node: string = '全省',
+  stages?: string[],
 ): Promise<TrendQueryResult> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('market_metric_points')
     .select('interval_index, value, unit, source_stage')
     .eq('metric_name', metricName)
     .eq('scenario_date', scenarioDate)
     .order('interval_index', { ascending: true });
+
+  if (stages && stages.length > 0) {
+    query = query.in('source_stage', stages);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`行情趋势数据加载失败: ${error.message}`);
@@ -69,7 +77,7 @@ export async function fetchTrendMetricPoints(
 
   for (const [stage, rows] of Object.entries(grouped)) {
     const scenario = SOURCE_STAGE_TO_SCENARIO[stage];
-    if (!scenario) continue; // skip unknown stages
+    if (!scenario) continue;
 
     if (rows.length < 96) {
       isIncomplete = true;
@@ -135,9 +143,9 @@ export interface ForecastQueryResult {
 }
 
 /**
- * Fetch price forecast data from Supabase for the ShortTermPriceForecast page.
- * Queries two metrics (日前电价-发电侧均价, 实时电价-发电侧均价) for the given
- * date range and merges them into the chart format expected by the page.
+ * Fetch price data from Supabase for the ShortTermPriceForecast page.
+ * Queries ONLY source_stage = '实际' (the only DB-backed stage for price metrics).
+ * The frontend-derived 智能预测 is handled in the page component.
  */
 export async function fetchForecastPriceData(
   startDate: string,
@@ -145,9 +153,8 @@ export async function fetchForecastPriceData(
 ): Promise<ForecastQueryResult> {
   const dayAheadMetric = '日前电价-发电侧均价';
   const realTimeMetric = '实时电价-发电侧均价';
-  const sourceStage = '智能预测';
+  const sourceStage = '实际';
 
-  // Fetch both metrics in parallel, filtering to single source_stage
   const [dayAheadRes, realTimeRes] = await Promise.all([
     supabase
       .from('market_metric_points')
@@ -188,7 +195,6 @@ export async function fetchForecastPriceData(
     };
   }
 
-  // Index rows by "date|interval_index" — no priority merge, single source_stage
   function buildIndex(rows: typeof dayAheadRows): Map<string, number> {
     const idx = new Map<string, number>();
     for (const r of rows) {
@@ -213,7 +219,6 @@ export async function fetchForecastPriceData(
     let dayDaSum = 0, dayRtSum = 0, dayCount = 0;
     let dateHasGap = false;
 
-    // interval_index is 1-based: 1..96
     for (let i = 1; i <= 96; i++) {
       const key = `${date}|${i}`;
       const da = dayAheadIdx.get(key);
@@ -251,6 +256,7 @@ export async function fetchForecastPriceData(
     }
   }
 
+  // Accuracy: how close dayAhead is to realTime (threshold-based)
   const threshold = 150;
   const accurate = allPoints.filter((p) => Math.abs(p.dayAhead - p.realTime) < threshold).length;
   const accuracy = allPoints.length > 0
@@ -276,10 +282,10 @@ export async function fetchForecastPriceData(
   }
 
   const summaries: ForecastPriceSummary[] = [
-    buildSummary('日前电价(预测)-智能预测', allPoints.map(p => ({ val: p.dayAhead, date: p.date, time: p.time }))),
-    buildSummary('实时电价(预测)-智能预测', allPoints.map(p => ({ val: p.realTime, date: p.date, time: p.time }))),
-    buildSummary('日前电价-发电侧均价', dailyAvg.map(d => ({ val: d.dayAheadAvg, date: d.date, time: '' }))),
-    buildSummary('实时电价-发电侧均价', dailyAvg.map(d => ({ val: d.realTimeAvg, date: d.date, time: '' }))),
+    buildSummary('日前电价(实际)', allPoints.map(p => ({ val: p.dayAhead, date: p.date, time: p.time }))),
+    buildSummary('实时电价(实际)', allPoints.map(p => ({ val: p.realTime, date: p.date, time: p.time }))),
+    buildSummary('日前电价-日均价', dailyAvg.map(d => ({ val: d.dayAheadAvg, date: d.date, time: '' }))),
+    buildSummary('实时电价-日均价', dailyAvg.map(d => ({ val: d.realTimeAvg, date: d.date, time: '' }))),
   ];
 
   return {
@@ -290,5 +296,48 @@ export async function fetchForecastPriceData(
     summaries,
     isIncomplete,
     totalRows,
+  };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * CustomBoard: fetch metric data for multiple panels/dates.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export interface CustomBoardSeriesResult {
+  points: { intervalIndex: number; time: string; value: number }[];
+  unit: string;
+  sourceStage: string;
+  isIncomplete: boolean;
+}
+
+/**
+ * Fetch a single metric + stage + date from market_metric_points.
+ * Returns 96-point series in ChartDataPoint-compatible format.
+ */
+export async function fetchCustomBoardMetric(
+  metricName: string,
+  scenarioDate: string,
+  sourceStage: string,
+): Promise<CustomBoardSeriesResult> {
+  const { data, error } = await supabase
+    .from('market_metric_points')
+    .select('interval_index, value, unit')
+    .eq('metric_name', metricName)
+    .eq('scenario_date', scenarioDate)
+    .eq('source_stage', sourceStage)
+    .order('interval_index', { ascending: true });
+
+  if (error) throw new Error(`${metricName} 数据加载失败: ${error.message}`);
+
+  const rows = data ?? [];
+  return {
+    points: rows.map(r => ({
+      intervalIndex: r.interval_index,
+      time: formatIntervalTime(r.interval_index),
+      value: Number(r.value),
+    })),
+    unit: rows[0]?.unit || '',
+    sourceStage,
+    isIncomplete: rows.length > 0 && rows.length < 96,
   };
 }

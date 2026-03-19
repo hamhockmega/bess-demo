@@ -5,7 +5,7 @@ import { PanelCard } from '@/components/dashboard/PanelCard';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Search, Loader2, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Search, Loader2, AlertTriangle, Info } from 'lucide-react';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { format } from 'date-fns';
 import {
@@ -43,7 +43,7 @@ export default function ShortTermPriceForecast() {
   const endStr = format(dateRange.to, 'yyyy-MM-dd');
   const useSupabase = SUPABASE_SIDES.has(side);
 
-  // ── Supabase query ──
+  // ── Supabase query (source_stage = '实际' only) ──
   const { data: supabaseData, isLoading, isError, error } = useQuery({
     queryKey: ['forecastPriceData', startStr, endStr, queryVersion],
     queryFn: () => fetchForecastPriceData(startStr, endStr),
@@ -138,6 +138,14 @@ export default function ShortTermPriceForecast() {
           </div>
         </div>
 
+        {/* Data source notice */}
+        {useSupabase && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
+            <Info className="w-3.5 h-3.5" />
+            数据来源：实际结算数据（source_stage = 实际）
+          </div>
+        )}
+
         {/* Incomplete data warning */}
         {isIncomplete && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
@@ -157,11 +165,11 @@ export default function ShortTermPriceForecast() {
         {data.points.length > 0 && (
           <>
             {/* Section 1: 价格预测结果 */}
-            <PanelCard title={`价格预测结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
+            <PanelCard title={`价格分析结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Accuracy KPI */}
                 <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
-                  <span className="text-xs text-muted-foreground mb-2 font-medium">日前预测值准确率</span>
+                  <span className="text-xs text-muted-foreground mb-2 font-medium">日前与实时价格一致率</span>
                   <span className="text-4xl font-bold text-primary tabular-nums">{data.accuracy}%</span>
                   <span className="text-xs text-muted-foreground mt-2">所选时段</span>
                 </div>
@@ -176,8 +184,8 @@ export default function ShortTermPriceForecast() {
                       />
                       <Tooltip {...TOOLTIP_STYLE} />
                       <Legend {...LEGEND_STYLE} />
-                      <Line type="monotone" dataKey="dayAhead" name="日前电价(预测)" stroke={CHART_COLORS.deep} dot={false} strokeWidth={2} />
-                      <Line type="monotone" dataKey="realTime" name="实时电价(预测)" stroke={CHART_COLORS.amber} dot={false} strokeWidth={1.5} strokeDasharray="4 3" />
+                      <Line type="monotone" dataKey="dayAhead" name="日前电价(实际)" stroke={CHART_COLORS.deep} dot={false} strokeWidth={2} />
+                      <Line type="monotone" dataKey="realTime" name="实时电价(实际)" stroke={CHART_COLORS.amber} dot={false} strokeWidth={1.5} strokeDasharray="4 3" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
