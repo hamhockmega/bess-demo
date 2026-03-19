@@ -43,8 +43,9 @@ export const ScenarioPreviewPanel: React.FC<Props> = ({ scenario }) => {
           <ChartInfoButton
             info={{
               title: '场景预览说明',
-              description:
-                '展示所选预测日的门前节点电价和用户侧统一结算点电价基础曲线。策略生成将基于此场景进行优化。',
+              tradingMeaning:
+                '展示所选预测日的门前节点电价和用户侧统一结算点电价基础曲线。',
+              calculationLogic: '策略生成将基于此场景的价格曲线进行优化决策。',
             }}
           />
           <button
