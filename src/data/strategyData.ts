@@ -45,7 +45,7 @@ export interface PowerPoint {
   time: string; // HH:mm
   quotationPower: number;
   awardedPower: number;
-  dayAheadPrice: number;
+  realTimePrice: number;
 }
 
 export interface SocPoint {
@@ -136,25 +136,23 @@ function generatePowerSeries(): PowerPoint[] {
     let quotationPower = 0;
     let dayAheadPrice = 0;
 
+    let realTimePrice = 0;
+
     if (h >= 1 && h < 6) {
-      // Night charging
       quotationPower = -(60 + Math.random() * 30);
-      dayAheadPrice = 120 + Math.random() * 80;
+      realTimePrice = 120 + Math.random() * 80;
     } else if (h >= 8 && h < 11) {
-      // Morning peak discharge
       quotationPower = 50 + Math.random() * 40;
-      dayAheadPrice = 350 + Math.random() * 150;
+      realTimePrice = 350 + Math.random() * 150;
     } else if (h >= 13 && h < 15) {
-      // Afternoon valley - charge
       quotationPower = -(30 + Math.random() * 40);
-      dayAheadPrice = 150 + Math.random() * 60;
+      realTimePrice = 150 + Math.random() * 60;
     } else if (h >= 17 && h < 21) {
-      // Evening peak discharge
       quotationPower = 60 + Math.random() * 35;
-      dayAheadPrice = 400 + Math.random() * 200;
+      realTimePrice = 400 + Math.random() * 200;
     } else {
       quotationPower = (Math.random() - 0.5) * 20;
-      dayAheadPrice = 200 + Math.random() * 100;
+      realTimePrice = 200 + Math.random() * 100;
     }
 
     const awardedPower = quotationPower * (0.85 + Math.random() * 0.15);
@@ -163,7 +161,7 @@ function generatePowerSeries(): PowerPoint[] {
       time,
       quotationPower: Math.round(quotationPower * 10) / 10,
       awardedPower: Math.round(awardedPower * 10) / 10,
-      dayAheadPrice: Math.round(dayAheadPrice * 100) / 100,
+      realTimePrice: Math.round(realTimePrice * 100) / 100,
     });
   }
   return points;
@@ -257,7 +255,7 @@ function generateSchedulePoints(
       targetPowerMw: Math.round(Math.abs(power) * 10) / 10,
       chargeBidPrice: action === '充电' ? chargePrice : null,
       dischargeBidPrice: action === '放电' ? dischargePrice : null,
-      benchmarkPrice: Math.round(p.dayAheadPrice * 100) / 100,
+      benchmarkPrice: Math.round(p.realTimePrice * 100) / 100,
       expectedSocAfter: Math.round(soc * 10) / 10,
       expectedEnergyMwh: energyMwh,
       note: null,

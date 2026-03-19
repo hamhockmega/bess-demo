@@ -302,7 +302,7 @@ export function buildStrategyFromScenario(
       time: formatIntervalTime(i),
       quotationPower: signedPower,
       awardedPower: signedPower, // deterministic: awarded = quoted
-      dayAheadPrice: iv.frontNodePrice,
+      realTimePrice: iv.frontNodePrice,
     };
   });
 

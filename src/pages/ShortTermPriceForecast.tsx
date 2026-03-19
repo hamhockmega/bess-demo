@@ -12,27 +12,10 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, Area, AreaChart,
 } from 'recharts';
-import { fetchForecastActualPriceData, type ForecastPriceQueryResult, type ForecastPriceSummary } from '@/data/marketPriceQueries';
-import { fetchForecastData as fetchMockForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
+import { fetchForecastActualPriceData, type ForecastPriceSummary } from '@/data/marketPriceQueries';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 
-type Side = 'generation' | 'consumption';
-
-const SIDE_LABELS: Record<Side, string> = {
-  generation: '发电侧',
-  consumption: '用电侧',
-};
-
-const PRICE_LABELS: Record<Side, string> = {
-  generation: '统一结算价',
-  consumption: '统一结算价',
-};
-
-/** Both sides now wired to Supabase via market_price_points */
-const SUPABASE_SIDES = new Set<Side>(['generation', 'consumption']);
-
 export default function ShortTermPriceForecast() {
-  const [side, setSide] = useState<Side>('generation');
   const [defaultDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
@@ -42,32 +25,22 @@ export default function ShortTermPriceForecast() {
   const [queryVersion, setQueryVersion] = useState(0);
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  const useSupabase = SUPABASE_SIDES.has(side);
-
   const priceMetricName = '统一结算价';
 
   const { data: supabaseData, isLoading, isError, error } = useQuery({
     queryKey: ['forecastPriceData', priceMetricName, dateStr, queryVersion],
     queryFn: () => fetchForecastActualPriceData(dateStr, dateStr, priceMetricName),
-    enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
   });
 
-  const mockData: ForecastResult = useMemo(() => {
-    if (useSupabase) return { accuracy: 0, period: '', points: [], dailyAvg: [], summaries: [] };
-    void queryVersion;
-    return fetchMockForecastData(dateStr, dateStr, side);
-  }, [dateStr, side, queryVersion, useSupabase]);
-
   const data = useMemo(() => {
-    if (!useSupabase) return mockData;
     if (!supabaseData) return { accuracy: 0, period: dateStr, points: [] as any[], dailyAvg: [] as any[], summaries: [] as any[], isIncomplete: false };
     return supabaseData;
-  }, [useSupabase, supabaseData, mockData, dateStr]);
+  }, [supabaseData, dateStr]);
 
-  const isIncomplete = useSupabase && (supabaseData?.isIncomplete ?? false);
-  const hasNoData = useSupabase && !isLoading && !isError && data.points.length === 0;
+  const isIncomplete = supabaseData?.isIncomplete ?? false;
+  const hasNoData = !isLoading && !isError && data.points.length === 0;
 
   const intradayData = useMemo(() => {
     if (data.points.length === 0) return [];
@@ -75,7 +48,7 @@ export default function ShortTermPriceForecast() {
     return data.points.filter((p) => p.date === firstDate);
   }, [data]);
 
-  if (useSupabase && isLoading) {
+  if (isLoading) {
     return (
       <AppShell>
         <div className="p-5 flex items-center justify-center h-[60vh] gap-2 text-muted-foreground">
@@ -86,7 +59,7 @@ export default function ShortTermPriceForecast() {
     );
   }
 
-  if (useSupabase && isError) {
+  if (isError) {
     return (
       <AppShell>
         <div className="p-5 flex flex-col items-center justify-center h-[60vh] gap-2 text-destructive">
@@ -132,31 +105,12 @@ export default function ShortTermPriceForecast() {
           >
             <Search className="w-3.5 h-3.5" /> 查询
           </Button>
-
-          {/* Side toggle */}
-          <div className="flex items-center gap-1 ml-auto bg-secondary p-1 rounded-lg">
-            {(['generation', 'consumption'] as Side[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSide(s)}
-                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  side === s
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                }`}
-              >
-                {SIDE_LABELS[s]}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {useSupabase && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
-            <Info className="w-3.5 h-3.5" />
-            数据来源：market_price_points（日前电价 + 实时电价，source_stage = 实际）
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
+          <Info className="w-3.5 h-3.5" />
+          数据来源：market_price_points（日前电价 + 实时电价，source_stage = 实际）
+        </div>
 
         {isIncomplete && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
@@ -173,7 +127,7 @@ export default function ShortTermPriceForecast() {
 
         {data.points.length > 0 && (
           <>
-            <PanelCard title={`价格分析结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
+            <PanelCard title="价格分析结果 (统一结算价)" headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
                   <span className="text-xs text-muted-foreground mb-2 font-medium">日前与实时价格一致率</span>
@@ -261,7 +215,7 @@ export default function ShortTermPriceForecast() {
 
 /* ── Sub-components ── */
 
-function SummaryBlock({ summary }: { summary: ForecastPriceSummary | PriceSummary }) {
+function SummaryBlock({ summary }: { summary: ForecastPriceSummary }) {
   return (
     <div className="bg-secondary border border-border rounded-lg p-4 space-y-3">
       <div className="text-sm font-semibold text-foreground">{summary.label}</div>
