@@ -4,7 +4,10 @@
  * Architecture:
  * - Repositories provide raw data (strategy snapshots + actual market scenarios)
  * - ReviewEngine computes all results in the frontend
+ * - ActualScenario data is fetched from Supabase `market_scenarios` table
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 // ── Types ──
 
