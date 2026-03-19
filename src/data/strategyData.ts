@@ -230,29 +230,54 @@ function generateEnergySeries(): EnergyPoint[] {
   return points;
 }
 
+function generateSchedulePoints(
+  powerSeries: PowerPoint[],
+  socSeries: SocPoint[],
+  chargePrice: number,
+  dischargePrice: number,
+): SchedulePoint[] {
+  return powerSeries.map((p, i) => {
+    const power = p.quotationPower;
+    let action: '充电' | '放电' | '空闲';
+    if (power < -5) action = '充电';
+    else if (power > 5) action = '放电';
+    else action = '空闲';
+
+    const soc = socSeries[i]?.soc ?? 0;
+    const energyMwh = Math.round(Math.abs(power) * 0.25 * 100) / 100;
+
+    return {
+      intervalIndex: i,
+      hourIndex: Math.floor(i / 4),
+      targetAction: action,
+      targetPowerMw: Math.round(Math.abs(power) * 10) / 10,
+      chargeBidPrice: action === '充电' ? chargePrice : null,
+      dischargeBidPrice: action === '放电' ? dischargePrice : null,
+      benchmarkPrice: Math.round(p.dayAheadPrice * 100) / 100,
+      expectedSocAfter: Math.round(soc * 10) / 10,
+      expectedEnergyMwh: energyMwh,
+      note: null,
+    };
+  });
+}
+
 export function generateMockStrategy(form: StrategyForm): GeneratedStrategy {
+  const powerSeries = generatePowerSeries();
+  const socSeries = generateSocSeries(form.initialSoc, form.maxSoc, form.minSoc);
+  const chargePrice = 150;
+  const dischargePrice = 225;
+
   return {
     strategyId: `STR-${Date.now()}`,
     strategyName: form.strategyName,
     status: '已生成',
     quotationSegments: [
-      {
-        type: '充电',
-        segmentNo: 1,
-        startPower: -100,
-        endPower: 0,
-        offerPrice: 150,
-      },
-      {
-        type: '放电',
-        segmentNo: 1,
-        startPower: 0,
-        endPower: 100,
-        offerPrice: 225,
-      },
+      { type: '充电', segmentNo: 1, startPower: -100, endPower: 0, offerPrice: chargePrice },
+      { type: '放电', segmentNo: 1, startPower: 0, endPower: 100, offerPrice: dischargePrice },
     ],
-    powerSeries: generatePowerSeries(),
-    socSeries: generateSocSeries(form.initialSoc, form.maxSoc, form.minSoc),
+    schedulePoints: generateSchedulePoints(powerSeries, socSeries, chargePrice, dischargePrice),
+    powerSeries,
+    socSeries,
     energySeries: generateEnergySeries(),
     runtimeParameters: {
       chargePowerLimit: form.chargePowerLimit,
