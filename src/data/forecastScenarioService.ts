@@ -11,6 +11,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { formatIntervalTime } from '@/data/energyAccounting';
+import { fetchPredictedPriceSeries } from '@/data/marketPriceQueries';
 
 export interface ForecastScenario {
   date: string; // YYYY-MM-DD
