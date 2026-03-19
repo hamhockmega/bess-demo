@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      market_metric_points: {
+        Row: {
+          created_at: string
+          id: number
+          interval_index: number
+          metric_group: string
+          metric_name: string
+          node_name: string | null
+          region_name: string | null
+          remark: string | null
+          scenario_date: string
+          source_stage: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          interval_index: number
+          metric_group: string
+          metric_name: string
+          node_name?: string | null
+          region_name?: string | null
+          remark?: string | null
+          scenario_date: string
+          source_stage: string
+          unit: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          interval_index?: number
+          metric_group?: string
+          metric_name?: string
+          node_name?: string | null
+          region_name?: string | null
+          remark?: string | null
+          scenario_date?: string
+          source_stage?: string
+          unit?: string
+          value?: number
+        }
+        Relationships: []
+      }
       market_scenarios: {
         Row: {
           actual_award_signal: boolean | null
