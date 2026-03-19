@@ -413,6 +413,8 @@ const CustomBoard: React.FC = () => {
 
   const [panelSubItem, setPanelSubItem] = useState<Record<string, string>>({});
   const [panelTimePeriod, setPanelTimePeriod] = useState<Record<string, string>>({});
+  // Dynamic price-type availability (for panels with dynamicPriceTypes)
+  const [dynamicStages, setDynamicStages] = useState<Record<string, string[]>>({});
 
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [pendingPanels, setPendingPanels] = useState<PanelName[]>(visiblePanels);
