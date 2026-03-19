@@ -63,7 +63,6 @@ export const TrendCard: React.FC = () => {
     queryKey: ['trendPricePoints', priceMapping?.metricName, priceMapping?.priceType, queryDate],
     queryFn: async () => {
       const result = await fetchPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate, '实际');
-      // Convert PriceSeriesResult to MetricSeries for unified handling
       const series: MetricSeries = {
         metricName: trendMetric,
         metricFamily: 'price',
@@ -84,6 +83,15 @@ export const TrendCard: React.FC = () => {
         totalRows: result.points.length,
       };
     },
+    enabled: isPriceMapped,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  // ── SQL-backed predicted price query (source_stage = 智能预测) ──
+  const { data: sqlPredictedResult } = useQuery({
+    queryKey: ['trendPredictedPrice', priceMapping?.metricName, priceMapping?.priceType, queryDate],
+    queryFn: () => fetchPredictedPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate),
     enabled: isPriceMapped,
     staleTime: 60_000,
     retry: 1,
