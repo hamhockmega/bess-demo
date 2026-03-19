@@ -50,6 +50,62 @@ export type Database = {
         }
         Relationships: []
       }
+      strategy_schedule_points: {
+        Row: {
+          benchmark_price: number | null
+          charge_bid_price: number | null
+          created_at: string
+          discharge_bid_price: number | null
+          expected_energy_mwh: number | null
+          expected_soc_after: number | null
+          hour_index: number | null
+          id: number
+          interval_index: number
+          note: string | null
+          strategy_id: number
+          target_action: string
+          target_power_mw: number
+        }
+        Insert: {
+          benchmark_price?: number | null
+          charge_bid_price?: number | null
+          created_at?: string
+          discharge_bid_price?: number | null
+          expected_energy_mwh?: number | null
+          expected_soc_after?: number | null
+          hour_index?: number | null
+          id?: number
+          interval_index: number
+          note?: string | null
+          strategy_id: number
+          target_action: string
+          target_power_mw?: number
+        }
+        Update: {
+          benchmark_price?: number | null
+          charge_bid_price?: number | null
+          created_at?: string
+          discharge_bid_price?: number | null
+          expected_energy_mwh?: number | null
+          expected_soc_after?: number | null
+          hour_index?: number | null
+          id?: number
+          interval_index?: number
+          note?: string | null
+          strategy_id?: number
+          target_action?: string
+          target_power_mw?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_schedule_points_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategy_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategy_segments: {
         Row: {
           created_at: string
