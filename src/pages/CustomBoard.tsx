@@ -374,7 +374,7 @@ const WiredPanel: React.FC<{
           {priceTypeLabel}
         </div>
       )}
-      {rawData.isIncomplete && (
+      {(rawData.isIncomplete || isPartialData) && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-warning">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
