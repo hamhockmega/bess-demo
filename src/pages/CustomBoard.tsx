@@ -18,6 +18,7 @@ import { SaveAsDialog } from '@/components/custom-board/SaveAsDialog';
 import { PanelChart } from '@/components/custom-board/PanelChart';
 import { PANEL_DATA_GENERATORS, ChartDataPoint } from '@/data/customBoardData';
 import { fetchCustomBoardMetric, formatIntervalTime } from '@/data/marketMetricQueries';
+import { fetchPriceSeries } from '@/data/marketPriceQueries';
 import { derivePredictionSeries } from '@/data/derivedPrediction';
 import { computeStorageDispatch, type StorageConfig } from '@/data/storageDispatch';
 import { supabase } from '@/integrations/supabase/client';
