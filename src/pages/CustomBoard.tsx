@@ -44,13 +44,15 @@ interface WiredPanelConfig {
   unit: string;
   /** Price panels: which price_types to support */
   priceTypes?: string[];
+  /** If true, dynamically detect available price types from DB */
+  dynamicPriceTypes?: boolean;
 }
 
 const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
   // Price panels → read from market_price_points
   '节点电价(全省平均)': { dbMetricName: '节点电价(全省平均)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
   '统一结算价': { dbMetricName: '统一结算价', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
-  '节点电价(门前节点)': { dbMetricName: '节点电价(门前节点)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
+  '节点电价(门前节点)': { dbMetricName: '节点电价(门前节点)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'], dynamicPriceTypes: true },
   // Load panels → read from market_metric_points
   '联络线受电负荷': { dbMetricName: '联络线受电负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
   '系统负荷': { dbMetricName: '直调负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
@@ -130,6 +132,27 @@ const PanelFilter: React.FC<{
   </Select>
 );
 
+// ── Hook to detect available price types for a metric ──
+
+function useAvailablePriceTypes(metricName: string, date: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['availablePriceTypes', metricName, date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('market_price_points')
+        .select('price_type')
+        .eq('metric_name', metricName)
+        .eq('scenario_date', date)
+        .eq('source_stage', '实际');
+      if (error) throw error;
+      const types = [...new Set((data ?? []).map(r => r.price_type))];
+      return types;
+    },
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
 // ── Supabase-wired panel component ──
 
 const WiredPanel: React.FC<{
@@ -138,8 +161,10 @@ const WiredPanel: React.FC<{
   date: string;
   stage: string;
   subItem: string;
-}> = ({ panelName, config, date, stage, subItem }) => {
+  onAvailableStages?: (stages: string[]) => void;
+}> = ({ panelName, config, date, stage, subItem, onAvailableStages }) => {
   const isPrice = config.type === 'price';
+  const isDynamic = config.dynamicPriceTypes === true;
 
   // Resolve actual DB metric name (系统负荷 sub-items map to different metrics)
   const dbMetric = useMemo(() => {
@@ -154,6 +179,27 @@ const WiredPanel: React.FC<{
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
 
+  // Detect available price types dynamically
+  const { data: availableTypes } = useAvailablePriceTypes(dbMetric, date, isPrice && isDynamic);
+
+  // Report available stages back to parent for filter options
+  React.useEffect(() => {
+    if (!isDynamic || !availableTypes || !onAvailableStages) return;
+    const stages = [...availableTypes];
+    // Always allow 智能预测 if 实时电价 is available
+    if (availableTypes.includes('实时电价')) {
+      stages.push('智能预测');
+    }
+    onAvailableStages(stages);
+  }, [isDynamic, availableTypes, onAvailableStages]);
+
+  // Check if the currently selected stage is valid
+  const stageValid = useMemo(() => {
+    if (!isDynamic || !availableTypes) return true; // still loading
+    if (stage === '智能预测') return availableTypes.includes('实时电价');
+    return availableTypes.includes(stage);
+  }, [isDynamic, availableTypes, stage]);
+
   const isDerived = stage === '智能预测' && isPrice;
   // For price panels: stage is a price_type (日前电价/实时电价) or 智能预测
   // For 智能预测, derive from 实时电价
@@ -163,7 +209,7 @@ const WiredPanel: React.FC<{
   const { data: priceData, isLoading: priceLoading, isError: priceError } = useQuery({
     queryKey: ['customBoardPrice', dbMetric, date, priceType],
     queryFn: () => fetchPriceSeries(dbMetric, priceType, date, '实际'),
-    enabled: isPrice,
+    enabled: isPrice && stageValid,
     staleTime: 60_000,
     retry: 1,
   });
@@ -180,6 +226,15 @@ const WiredPanel: React.FC<{
   const isLoading = isPrice ? priceLoading : metricLoading;
   const isError = isPrice ? priceError : metricError;
   const rawData = isPrice ? priceData : metricData;
+
+  // If stage is not valid (e.g. 日前电价 doesn't exist), show message
+  if (isPrice && isDynamic && !stageValid) {
+    return (
+      <div className="h-[220px] flex items-center justify-center text-muted-foreground">
+        <span className="text-xs">当前价格类型「{stage}」暂无数据</span>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -243,7 +298,7 @@ const WiredPanel: React.FC<{
   return (
     <div className="space-y-1">
       {isDerived && (
-        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-600">
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-primary/80">
           <Info className="w-3 h-3" />
           智能预测基于实时电价确定性派生
         </div>
@@ -255,7 +310,7 @@ const WiredPanel: React.FC<{
         </div>
       )}
       {rawData.isIncomplete && (
-        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-amber-600">
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-warning">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
         </div>
@@ -358,6 +413,8 @@ const CustomBoard: React.FC = () => {
 
   const [panelSubItem, setPanelSubItem] = useState<Record<string, string>>({});
   const [panelTimePeriod, setPanelTimePeriod] = useState<Record<string, string>>({});
+  // Dynamic price-type availability (for panels with dynamicPriceTypes)
+  const [dynamicStages, setDynamicStages] = useState<Record<string, string[]>>({});
 
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [pendingPanels, setPendingPanels] = useState<PanelName[]>(visiblePanels);
@@ -447,7 +504,10 @@ const CustomBoard: React.FC = () => {
   const getTimePeriod = (panel: string) => {
     const wired = WIRED_PANELS[panel as PanelName];
     if (wired) {
-      const stages = getStageOptions(wired);
+      // Use dynamic stages if available, otherwise static
+      const stages = (wired.dynamicPriceTypes && dynamicStages[panel]?.length)
+        ? dynamicStages[panel]
+        : getStageOptions(wired);
       return panelTimePeriod[panel] || stages[0];
     }
     return panelTimePeriod[panel] || '实时';
@@ -553,8 +613,12 @@ const CustomBoard: React.FC = () => {
             const subItems = PANEL_SUB_ITEMS[panelName] || [];
             const data = panelData[panelName] || [];
 
-            // Stage options for wired panels
-            const stageOptions = isWired ? getStageOptions(wiredConfig) : [];
+            // Stage options for wired panels (dynamic if available)
+            const stageOptions = isWired
+              ? (wiredConfig.dynamicPriceTypes && dynamicStages[panelName]?.length
+                  ? dynamicStages[panelName]
+                  : getStageOptions(wiredConfig))
+              : [];
 
             return (
               <PanelCard
@@ -595,6 +659,13 @@ const CustomBoard: React.FC = () => {
                     date={primaryDate}
                     stage={getTimePeriod(panelName)}
                     subItem={getSubItem(panelName)}
+                    onAvailableStages={wiredConfig.dynamicPriceTypes
+                      ? (stages) => setDynamicStages(prev => {
+                          const existing = prev[panelName];
+                          if (existing && existing.length === stages.length && existing.every((s, i) => s === stages[i])) return prev;
+                          return { ...prev, [panelName]: stages };
+                        })
+                      : undefined}
                   />
                 ) : (
                   <div className="h-[220px]">
