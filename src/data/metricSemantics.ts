@@ -19,6 +19,8 @@ export interface MetricSemanticsData {
   rules: StageRule[];
 }
 
+const VALID_SOURCE_TYPES = new Set(['database', 'derived']);
+
 async function fetchMetricSemantics(): Promise<MetricSemanticsData> {
   const { data, error } = await supabase
     .from('metric_stage_rules')
@@ -27,7 +29,18 @@ async function fetchMetricSemantics(): Promise<MetricSemanticsData> {
     .order('sort_order', { ascending: true });
 
   if (error) throw new Error(`指标规则加载失败: ${error.message}`);
-  return { rules: (data ?? []) as StageRule[] };
+
+  const rules: StageRule[] = [];
+  for (const row of (data ?? [])) {
+    if (VALID_SOURCE_TYPES.has(row.stage_source_type)) {
+      rules.push(row as StageRule);
+    } else {
+      console.warn(
+        `[metricSemantics] 忽略未知 stage_source_type "${row.stage_source_type}" (metric: ${row.metric_name}, stage: ${row.source_stage})`
+      );
+    }
+  }
+  return { rules };
 }
 
 /** React Query hook – stale for 5 minutes */
