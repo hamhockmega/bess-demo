@@ -59,6 +59,19 @@ export interface EnergyPoint {
   cumulativeEnergy: number;
 }
 
+export interface SchedulePoint {
+  intervalIndex: number;
+  hourIndex: number;
+  targetAction: '充电' | '放电' | '空闲';
+  targetPowerMw: number;
+  chargeBidPrice: number | null;
+  dischargeBidPrice: number | null;
+  benchmarkPrice: number | null;
+  expectedSocAfter: number;
+  expectedEnergyMwh: number;
+  note: string | null;
+}
+
 export interface GeneratedStrategy {
   strategyId: string;
   strategyName: string;
