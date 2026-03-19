@@ -267,6 +267,16 @@ const WiredPanel: React.FC<{
 
   // If stage is not valid, show message
   if (!stageValid) {
+    // For price panels: if at least one price type is available, show a helpful message
+    if (isPrice && detectedStages && detectedStages.length > 0) {
+      const availableLabel = detectedStages.filter(s => s !== '智能预测').join('、');
+      return (
+        <div className="h-[220px] flex flex-col items-center justify-center gap-1 text-muted-foreground">
+          <span className="text-xs">当前日期暂无「{stage}」数据</span>
+          {availableLabel && <span className="text-[10px]">可用类型：{availableLabel}</span>}
+        </div>
+      );
+    }
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前数据口径「{stage}」暂无数据</span>
@@ -292,7 +302,14 @@ const WiredPanel: React.FC<{
     );
   }
 
+  // Compute if current price_type has incomplete data
+  const currentPriceTypeCount = isPrice && priceTypeCounts && !isPredicted
+    ? priceTypeCounts[stage] ?? 0
+    : 0;
+  const isPartialData = isPrice && currentPriceTypeCount > 0 && currentPriceTypeCount < 96;
+
   if (!rawData || rawData.points.length === 0) {
+    // For price panels with partial detection: should not happen if stageValid, but guard
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前日期暂无可用数据</span>
