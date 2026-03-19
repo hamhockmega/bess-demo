@@ -12,24 +12,8 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, Area, AreaChart,
 } from 'recharts';
-import { fetchForecastActualPriceData, type ForecastPriceQueryResult, type ForecastPriceSummary } from '@/data/marketPriceQueries';
-import { fetchForecastData as fetchMockForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
+import { fetchForecastActualPriceData, type ForecastPriceSummary } from '@/data/marketPriceQueries';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
-
-type Side = 'generation' | 'consumption';
-
-const SIDE_LABELS: Record<Side, string> = {
-  generation: '发电侧',
-  consumption: '用电侧',
-};
-
-const PRICE_LABELS: Record<Side, string> = {
-  generation: '统一结算价',
-  consumption: '统一结算价',
-};
-
-/** Both sides now wired to Supabase via market_price_points */
-const SUPABASE_SIDES = new Set<Side>(['generation', 'consumption']);
 
 export default function ShortTermPriceForecast() {
   const [side, setSide] = useState<Side>('generation');
