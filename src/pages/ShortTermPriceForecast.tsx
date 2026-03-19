@@ -105,23 +105,6 @@ export default function ShortTermPriceForecast() {
           >
             <Search className="w-3.5 h-3.5" /> 查询
           </Button>
-
-          {/* Side toggle */}
-          <div className="flex items-center gap-1 ml-auto bg-secondary p-1 rounded-lg">
-            {(['generation', 'consumption'] as Side[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSide(s)}
-                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  side === s
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                }`}
-              >
-                {SIDE_LABELS[s]}
-              </button>
-            ))}
-          </div>
         </div>
 
         {useSupabase && (
