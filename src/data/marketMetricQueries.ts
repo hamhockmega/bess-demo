@@ -105,6 +105,26 @@ export async function fetchTrendMetricPoints(
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * Dynamic stage detection: discover which source_stage values exist
+ * for a given metric + date in market_metric_points.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export async function fetchAvailableMetricStages(
+  metricName: string,
+  scenarioDate: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('market_metric_points')
+    .select('source_stage')
+    .eq('metric_name', metricName)
+    .eq('scenario_date', scenarioDate)
+    .limit(500);
+
+  if (error) throw error;
+  return [...new Set((data ?? []).map(r => r.source_stage))];
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * Forecast page: fetch price data for a date range from market_metric_points.
  * Used by ShortTermPriceForecast.
  * ────────────────────────────────────────────────────────────────────────── */

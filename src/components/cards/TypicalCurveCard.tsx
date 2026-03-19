@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { PanelCard } from '../dashboard/PanelCard';
@@ -9,7 +9,7 @@ import { findSeriesByMetric, type Scenario } from '@/data/mockData';
 import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
-import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
+import { fetchTrendMetricPoints, fetchAvailableMetricStages } from '@/data/marketMetricQueries';
 import { useMetricSemantics, effectiveRules, getDbStages, getAllValidStages } from '@/data/metricSemantics';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
@@ -38,18 +38,43 @@ export const TypicalCurveCard: React.FC = () => {
   const dbStages = useMemo(() => getDbStages(rules, curveMetric), [rules, curveMetric]);
   const validStages = useMemo(() => getAllValidStages(rules, curveMetric), [rules, curveMetric]);
 
-  // Valid scenario tabs – only stages that exist in rules
+  // ── Dynamic stage detection: discover which stages actually have data for this date ──
+  const { data: availableDbStages } = useQuery({
+    queryKey: ['availableMetricStages', curveMetric, queryDate],
+    queryFn: () => fetchAvailableMetricStages(curveMetric, queryDate),
+    enabled: useSupabase,
+    staleTime: 5 * 60_000,
+  });
+
+  // Valid scenario tabs – only stages that exist in rules AND have data
   const scenarioTabs = useMemo<Scenario[]>(() => {
     if (!useSupabase) return ['出清前上午', '出清后', '实际', '周前'];
-    return validStages as Scenario[];
-  }, [useSupabase, validStages]);
+    if (!availableDbStages || availableDbStages.length === 0) return validStages as Scenario[];
+    // Filter to stages that actually have data for this date
+    return validStages.filter(s => availableDbStages.includes(s)) as Scenario[];
+  }, [useSupabase, validStages, availableDbStages]);
 
   const [activeScenarios, setActiveScenarios] = useState<Scenario[]>(['出清前上午', '出清后', '实际']);
 
-  // ── Supabase query (only DB-backed stages) ──
+  // ── Auto-switch active scenarios to available data ──
+  useEffect(() => {
+    if (!useSupabase || !availableDbStages || availableDbStages.length === 0) return;
+    // If none of the active scenarios have data, switch to the first available
+    const hasValidActive = activeScenarios.some(s => availableDbStages.includes(s));
+    if (!hasValidActive) {
+      setActiveScenarios(availableDbStages.slice(0, 3) as Scenario[]);
+    }
+  }, [availableDbStages, useSupabase]);
+
+  // ── Supabase query – only fetch stages that exist ──
+  const effectiveDbStages = useMemo(() => {
+    if (availableDbStages && availableDbStages.length > 0) return availableDbStages;
+    return dbStages.length > 0 ? dbStages : undefined;
+  }, [availableDbStages, dbStages]);
+
   const { data: supabaseResult, isLoading, isError, error } = useQuery({
-    queryKey: ['curveMetricPoints', curveMetric, queryDate, dbStages],
-    queryFn: () => fetchTrendMetricPoints(curveMetric, queryDate, '全省', dbStages.length > 0 ? dbStages : undefined),
+    queryKey: ['curveMetricPoints', curveMetric, queryDate, effectiveDbStages],
+    queryFn: () => fetchTrendMetricPoints(curveMetric, queryDate, '全省', effectiveDbStages),
     enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
@@ -135,7 +160,7 @@ export const TypicalCurveCard: React.FC = () => {
         <div className="flex flex-col h-full gap-3">
           <DashboardTabs tabs={LOAD_METRICS} activeTab={curveMetric} onTabChange={setCurveMetric} size="md" />
           <div className="flex items-center justify-center flex-1 text-muted-foreground">
-            <span className="text-sm">当前指标暂无可用场景数据</span>
+            <span className="text-sm">当前日期暂无该指标数据</span>
           </div>
         </div>
       </PanelCard>
@@ -160,7 +185,7 @@ export const TypicalCurveCard: React.FC = () => {
                       ? 'text-muted-foreground bg-secondary border border-transparent hover:bg-secondary/80'
                       : 'text-muted-foreground/40 bg-secondary/50 border border-transparent cursor-not-allowed'
                 }`}
-                title={!availableScenarioSet.has(s) ? '当前指标不支持该数据口径' : undefined}
+                title={!availableScenarioSet.has(s) ? '当前日期暂无该口径数据' : undefined}
               >
                 {s}
               </button>
