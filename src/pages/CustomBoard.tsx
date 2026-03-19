@@ -134,12 +134,18 @@ const PanelFilter: React.FC<{
 
 // ── Hook to detect available stages for ANY wired panel ──
 
+export interface AvailableStagesResult {
+  stages: string[];
+  /** For price panels: per-price_type row counts */
+  priceTypeCounts?: Record<string, number>;
+}
+
 function useAvailableStages(
   dbMetric: string,
   date: string,
   type: 'price' | 'load',
 ) {
-  return useQuery({
+  return useQuery<AvailableStagesResult>({
     queryKey: ['availableStages', dbMetric, date, type],
     queryFn: async () => {
       if (type === 'price') {
@@ -149,13 +155,20 @@ function useAvailableStages(
           .eq('metric_name', dbMetric)
           .eq('scenario_date', date)
           .eq('source_stage', '实际')
-          .limit(500);
+          .limit(1000);
         if (error) throw error;
-        const types = [...new Set((data ?? []).map(r => r.price_type))];
-        if (types.includes('实时电价') && !types.includes('智能预测')) {
+        const rows = data ?? [];
+        // Count rows per price_type independently
+        const counts: Record<string, number> = {};
+        for (const r of rows) {
+          counts[r.price_type] = (counts[r.price_type] || 0) + 1;
+        }
+        const types = Object.keys(counts);
+        // 智能预测 is available only if 实时电价 has data (prediction is based on it)
+        if (counts['实时电价'] && counts['实时电价'] > 0) {
           types.push('智能预测');
         }
-        return types;
+        return { stages: types, priceTypeCounts: counts };
       } else {
         const { data, error } = await supabase
           .from('market_metric_points')
@@ -164,7 +177,7 @@ function useAvailableStages(
           .eq('scenario_date', date)
           .limit(500);
         if (error) throw error;
-        return [...new Set((data ?? []).map(r => r.source_stage))];
+        return { stages: [...new Set((data ?? []).map(r => r.source_stage))] };
       }
     },
     staleTime: 5 * 60_000,
@@ -198,7 +211,9 @@ const WiredPanel: React.FC<{
   }, [panelName, config.dbMetricName, subItem]);
 
   // Dynamic stage detection for ALL wired panels
-  const { data: detectedStages } = useAvailableStages(dbMetric, date, config.type);
+  const { data: detectedResult } = useAvailableStages(dbMetric, date, config.type);
+  const detectedStages = detectedResult?.stages;
+  const priceTypeCounts = detectedResult?.priceTypeCounts;
 
   // Report available stages back to parent for filter options
   React.useEffect(() => {
@@ -252,6 +267,16 @@ const WiredPanel: React.FC<{
 
   // If stage is not valid, show message
   if (!stageValid) {
+    // For price panels: if at least one price type is available, show a helpful message
+    if (isPrice && detectedStages && detectedStages.length > 0) {
+      const availableLabel = detectedStages.filter(s => s !== '智能预测').join('、');
+      return (
+        <div className="h-[220px] flex flex-col items-center justify-center gap-1 text-muted-foreground">
+          <span className="text-xs">当前日期暂无「{stage}」数据</span>
+          {availableLabel && <span className="text-[10px]">可用类型：{availableLabel}</span>}
+        </div>
+      );
+    }
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前数据口径「{stage}」暂无数据</span>
@@ -277,7 +302,14 @@ const WiredPanel: React.FC<{
     );
   }
 
+  // Compute if current price_type has incomplete data
+  const currentPriceTypeCount = isPrice && priceTypeCounts && !isPredicted
+    ? priceTypeCounts[stage] ?? 0
+    : 0;
+  const isPartialData = isPrice && currentPriceTypeCount > 0 && currentPriceTypeCount < 96;
+
   if (!rawData || rawData.points.length === 0) {
+    // For price panels with partial detection: should not happen if stageValid, but guard
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前日期暂无可用数据</span>
@@ -342,7 +374,7 @@ const WiredPanel: React.FC<{
           {priceTypeLabel}
         </div>
       )}
-      {rawData.isIncomplete && (
+      {(rawData.isIncomplete || isPartialData) && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-warning">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
