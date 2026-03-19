@@ -31,6 +31,7 @@ import {
 
 const IntelligentQuoteStrategy: React.FC = () => {
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
   const [uiMode, setUiMode] = useState<UIMode>('beforeGenerate');
   const [form, setForm] = useState<StrategyForm>({ ...DEFAULT_STRATEGY_FORM });
   const [strategy, setStrategy] = useState<GeneratedStrategy | null>(null);
