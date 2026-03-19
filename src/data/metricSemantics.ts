@@ -93,12 +93,23 @@ export const FALLBACK_RULES: StageRule[] = [
   { metric_name: '节点电价(全省平均)', source_stage: '智能预测', stage_source_type: 'derived', derived_from_stage: '实际', sort_order: 2 },
   { metric_name: '统一结算价', source_stage: '实际', stage_source_type: 'database', derived_from_stage: null, sort_order: 1 },
   { metric_name: '统一结算价', source_stage: '智能预测', stage_source_type: 'derived', derived_from_stage: '实际', sort_order: 2 },
-  // Load metrics – multiple DB stages, no derived
+  // Load metrics – multiple DB stages
   ...['直调负荷', '全网负荷', '联络线受电负荷'].flatMap(m => [
     { metric_name: m, source_stage: '周前', stage_source_type: 'database', derived_from_stage: null, sort_order: 1 },
     { metric_name: m, source_stage: '出清前上午', stage_source_type: 'database', derived_from_stage: null, sort_order: 2 },
     { metric_name: m, source_stage: '出清后', stage_source_type: 'database', derived_from_stage: null, sort_order: 3 },
     { metric_name: m, source_stage: '实际', stage_source_type: 'database', derived_from_stage: null, sort_order: 4 },
+  ]),
+  // Renewable output metrics – multiple DB stages
+  ...['风电出力', '光伏出力', '新能源出力'].flatMap(m => [
+    { metric_name: m, source_stage: '周前', stage_source_type: 'database', derived_from_stage: null, sort_order: 1 },
+    { metric_name: m, source_stage: '出清前上午', stage_source_type: 'database', derived_from_stage: null, sort_order: 2 },
+    { metric_name: m, source_stage: '出清后', stage_source_type: 'database', derived_from_stage: null, sort_order: 3 },
+    { metric_name: m, source_stage: '实际', stage_source_type: 'database', derived_from_stage: null, sort_order: 4 },
+  ]),
+  // Weather metrics – only 实际 in DB
+  ...['温度(全省算术平均)', '风速(风电装机容量加权)', '辐照(光伏装机容量加权)', '降水量(全省算术平均)'].flatMap(m => [
+    { metric_name: m, source_stage: '实际', stage_source_type: 'database', derived_from_stage: null, sort_order: 1 },
   ]),
 ];
 
