@@ -18,7 +18,7 @@ import { SaveAsDialog } from '@/components/custom-board/SaveAsDialog';
 import { PanelChart } from '@/components/custom-board/PanelChart';
 import { PANEL_DATA_GENERATORS, ChartDataPoint } from '@/data/customBoardData';
 import { fetchCustomBoardMetric, formatIntervalTime } from '@/data/marketMetricQueries';
-import { fetchPriceSeries } from '@/data/marketPriceQueries';
+import { fetchPriceSeries, fetchPredictedPriceSeries } from '@/data/marketPriceQueries';
 import { derivePredictionSeries } from '@/data/derivedPrediction';
 import { computeStorageDispatch, type StorageConfig } from '@/data/storageDispatch';
 import { supabase } from '@/integrations/supabase/client';
@@ -279,28 +279,51 @@ const WiredPanel: React.FC<{
     value: p.value,
   }));
 
-  // For price metrics with 智能预测, derive prediction from actual 实时电价
+  // ── SQL-backed predicted price query for 智能预测 ──
+  const { data: sqlPredicted } = useQuery({
+    queryKey: ['customBoardSqlPredicted', dbMetric, date, priceType],
+    queryFn: () => fetchPredictedPriceSeries(dbMetric, priceType, date),
+    enabled: isDerived,
+    staleTime: 60_000,
+  });
+
+  const hasSqlPrediction = isDerived && !!sqlPredicted && sqlPredicted.points.length > 0;
+
+  // For price metrics with 智能预测, use SQL data first, then fallback to frontend derivation
   if (isDerived) {
-    const actualSeries: MetricSeries = {
-      metricName: dbMetric,
-      metricFamily: 'price',
-      scenario: '实际',
-      unit: config.unit,
-      node: '全省',
-      data: rawData.points.map(p => ({
-        dateKey: date,
-        timeKey: p.time,
-        timestamp: p.intervalIndex,
-        value: p.value,
+    if (hasSqlPrediction) {
+      // SQL-backed predicted prices available
+      chartData = rawData.points.map((p, i) => {
+        const sqlPoint = sqlPredicted!.points.find(sp => sp.intervalIndex === p.intervalIndex);
+        return {
+          time: p.time,
+          value: p.value,
+          value2: sqlPoint?.value ?? p.value,
+        };
+      });
+    } else {
+      // Fallback: deterministic frontend derivation
+      const actualSeries: MetricSeries = {
+        metricName: dbMetric,
+        metricFamily: 'price',
+        scenario: '实际',
         unit: config.unit,
-      })),
-    };
-    const predicted = derivePredictionSeries(actualSeries);
-    chartData = rawData.points.map((p, i) => ({
-      time: p.time,
-      value: p.value,
-      value2: predicted.data[i]?.value ?? 0,
-    }));
+        node: '全省',
+        data: rawData.points.map(p => ({
+          dateKey: date,
+          timeKey: p.time,
+          timestamp: p.intervalIndex,
+          value: p.value,
+          unit: config.unit,
+        })),
+      };
+      const predicted = derivePredictionSeries(actualSeries);
+      chartData = rawData.points.map((p, i) => ({
+        time: p.time,
+        value: p.value,
+        value2: predicted.data[i]?.value ?? 0,
+      }));
+    }
   }
 
   const priceTypeLabel = isPrice && !isDerived ? `当前展示价格类型：${stage}` : null;
@@ -310,7 +333,7 @@ const WiredPanel: React.FC<{
       {isDerived && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-primary/80">
           <Info className="w-3 h-3" />
-          智能预测基于实时电价确定性派生
+          {hasSqlPrediction ? '智能预测优先使用已导入预测数据' : '智能预测基于实时电价确定性派生'}
         </div>
       )}
       {priceTypeLabel && (
