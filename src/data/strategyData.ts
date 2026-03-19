@@ -29,6 +29,8 @@ export interface StrategyForm {
   minSoc: number; // %
   minContinuousChargeTime: number; // h
   minContinuousDischargeTime: number; // h
+  chargingEfficiency: number; // % (e.g. 95)
+  dischargingEfficiency: number; // % (e.g. 94)
 }
 
 export interface QuotationSegment {
@@ -117,6 +119,8 @@ export const DEFAULT_STRATEGY_FORM: StrategyForm = {
   minSoc: 4,
   minContinuousChargeTime: 1,
   minContinuousDischargeTime: 0.5,
+  chargingEfficiency: 95,
+  dischargingEfficiency: 94,
 };
 
 // ── Mock data generators ──
