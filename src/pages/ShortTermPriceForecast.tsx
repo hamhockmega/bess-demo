@@ -12,7 +12,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, Area, AreaChart,
 } from 'recharts';
-import { fetchForecastPriceData, type ForecastQueryResult, type ForecastPriceSummary } from '@/data/marketMetricQueries';
+import { fetchForecastActualPriceData, type ForecastPriceQueryResult, type ForecastPriceSummary } from '@/data/marketPriceQueries';
 import { fetchForecastData as fetchMockForecastData, type ForecastResult, type PriceSummary } from '@/data/priceForecastData';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 
