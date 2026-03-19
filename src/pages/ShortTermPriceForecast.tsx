@@ -33,41 +33,38 @@ const SUPABASE_SIDES = new Set<Side>(['generation', 'consumption']);
 
 export default function ShortTermPriceForecast() {
   const [side, setSide] = useState<Side>('generation');
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: new Date('2025-10-01'),
-    to: new Date('2025-10-31'),
+  const [defaultDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
   });
+  const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [queryVersion, setQueryVersion] = useState(0);
 
-  const startStr = format(dateRange.from, 'yyyy-MM-dd');
-  const endStr = format(dateRange.to, 'yyyy-MM-dd');
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const useSupabase = SUPABASE_SIDES.has(side);
 
-  // ── Supabase query (source_stage = '实际' only) ──
-  // ── Price metric: use actual metric_name from market_price_points ──
   const priceMetricName = '统一结算价';
 
   const { data: supabaseData, isLoading, isError, error } = useQuery({
-    queryKey: ['forecastPriceData', priceMetricName, startStr, endStr, queryVersion],
-    queryFn: () => fetchForecastActualPriceData(startStr, endStr, priceMetricName),
+    queryKey: ['forecastPriceData', priceMetricName, dateStr, queryVersion],
+    queryFn: () => fetchForecastActualPriceData(dateStr, dateStr, priceMetricName),
     enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
   });
 
-  // ── Mock fallback for consumption side ──
   const mockData: ForecastResult = useMemo(() => {
     if (useSupabase) return { accuracy: 0, period: '', points: [], dailyAvg: [], summaries: [] };
     void queryVersion;
-    return fetchMockForecastData(startStr, endStr, side);
-  }, [startStr, endStr, side, queryVersion, useSupabase]);
+    return fetchMockForecastData(dateStr, dateStr, side);
+  }, [dateStr, side, queryVersion, useSupabase]);
 
-  // ── Unified data shape ──
   const data = useMemo(() => {
     if (!useSupabase) return mockData;
-    if (!supabaseData) return { accuracy: 0, period: `${startStr} 至 ${endStr}`, points: [] as any[], dailyAvg: [] as any[], summaries: [] as any[], isIncomplete: false };
+    if (!supabaseData) return { accuracy: 0, period: dateStr, points: [] as any[], dailyAvg: [] as any[], summaries: [] as any[], isIncomplete: false };
     return supabaseData;
-  }, [useSupabase, supabaseData, mockData, startStr, endStr]);
+  }, [useSupabase, supabaseData, mockData, dateStr]);
 
   const isIncomplete = useSupabase && (supabaseData?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && data.points.length === 0;
@@ -78,7 +75,6 @@ export default function ShortTermPriceForecast() {
     return data.points.filter((p) => p.date === firstDate);
   }, [data]);
 
-  // ── Loading state ──
   if (useSupabase && isLoading) {
     return (
       <AppShell>
@@ -90,7 +86,6 @@ export default function ShortTermPriceForecast() {
     );
   }
 
-  // ── Error state ──
   if (useSupabase && isError) {
     return (
       <AppShell>
@@ -106,15 +101,30 @@ export default function ShortTermPriceForecast() {
   return (
     <AppShell>
       <div className="p-5 space-y-5">
-        {/* Page title */}
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">短期价格预测</h1>
+          <h1 className="text-lg font-semibold text-foreground">运行日价格复盘</h1>
         </div>
 
         {/* Toolbar */}
         <div className="flex items-center gap-3 flex-wrap bg-card border border-border rounded-lg px-4 py-3 panel-card">
           <span className="text-xs text-muted-foreground font-medium">日期：</span>
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-normal border-border bg-card">
+                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                {format(selectedDate, 'yyyy-MM-dd')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => d && setSelectedDate(d)}
+                defaultMonth={selectedDate}
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
           <Button
             size="sm"
             className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -141,7 +151,6 @@ export default function ShortTermPriceForecast() {
           </div>
         </div>
 
-        {/* Data source notice */}
         {useSupabase && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
             <Info className="w-3.5 h-3.5" />
@@ -149,7 +158,6 @@ export default function ShortTermPriceForecast() {
           </div>
         )}
 
-        {/* Incomplete data warning */}
         {isIncomplete && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -157,26 +165,21 @@ export default function ShortTermPriceForecast() {
           </div>
         )}
 
-        {/* Empty state */}
         {hasNoData && (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <span className="text-sm">未找到所选指标的场景数据</span>
           </div>
         )}
 
-        {/* Only render charts when there is data */}
         {data.points.length > 0 && (
           <>
-            {/* Section 1: 价格预测结果 */}
             <PanelCard title={`价格分析结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Accuracy KPI */}
                 <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
                   <span className="text-xs text-muted-foreground mb-2 font-medium">日前与实时价格一致率</span>
                   <span className="text-4xl font-bold text-primary tabular-nums">{data.accuracy}%</span>
                   <span className="text-xs text-muted-foreground mt-2">所选时段</span>
                 </div>
-                {/* Intraday chart */}
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={intradayData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
@@ -195,16 +198,13 @@ export default function ShortTermPriceForecast() {
               </div>
             </PanelCard>
 
-            {/* Section 2: 日均价 */}
             <PanelCard title="日均价 (元/MWh)">
               <div className="space-y-6">
-                {/* Summary blocks */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {data.summaries.map((s, i) => (
                     <SummaryBlock key={i} summary={s} />
                   ))}
                 </div>
-                {/* Daily avg bar chart */}
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.dailyAvg} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
@@ -221,7 +221,6 @@ export default function ShortTermPriceForecast() {
               </div>
             </PanelCard>
 
-            {/* Section 3: 趋势分析 */}
             <PanelCard title="趋势分析">
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3 text-center">
@@ -295,46 +294,6 @@ function TrendKpi({ label, value, unit, trend }: { label: string; value: number;
       <div className="text-[10px] text-muted-foreground mb-1.5 font-medium">{label}</div>
       <div className={`text-sm font-bold tabular-nums ${color}`}>{display}</div>
     </div>
-  );
-}
-
-function DateRangePicker({
-  value,
-  onChange,
-}: {
-  value: { from: Date; to: Date };
-  onChange: (v: { from: Date; to: Date }) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [range, setRange] = useState<{ from?: Date; to?: Date }>({ from: value.from, to: value.to });
-
-  const handleSelect = (r: { from?: Date; to?: Date } | undefined) => {
-    if (!r) return;
-    setRange(r);
-    if (r.from && r.to) {
-      onChange({ from: r.from, to: r.to });
-      setOpen(false);
-    }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-normal border-border bg-card">
-          <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
-          {format(value.from, 'yyyy-MM-dd')} 至 {format(value.to, 'yyyy-MM-dd')}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="range"
-          selected={range as any}
-          onSelect={handleSelect as any}
-          numberOfMonths={2}
-          defaultMonth={value.from}
-        />
-      </PopoverContent>
-    </Popover>
   );
 }
 
