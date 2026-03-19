@@ -9,7 +9,9 @@ import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
-import { findSeriesByMetric, type Scenario } from '@/data/mockData';
+import { fetchPriceSeries } from '@/data/marketPriceQueries';
+import { findSeriesByMetric, type Scenario, type MetricSeries, type DataPoint } from '@/data/mockData';
+import { formatIntervalTime } from '@/data/marketMetricQueries';
 import { useMetricSemantics, effectiveRules, getDbStages, getDerivedStages, getAllValidStages } from '@/data/metricSemantics';
 import { derivePredictionSeries } from '@/data/derivedPrediction';
 import { Loader2, AlertTriangle, Info } from 'lucide-react';
@@ -18,6 +20,15 @@ const METRIC_TABS = ['日前电价-发电侧均价', '实时电价-发电侧均�
 
 /** Metrics that are wired to Supabase */
 const SUPABASE_METRICS = new Set(['日前电价-发电侧均价', '实时电价-发电侧均价', '直调负荷']);
+
+/**
+ * Price metrics that must be routed to market_price_points instead of market_metric_points.
+ * Maps display label → { metricName in DB, priceType filter }
+ */
+const PRICE_METRIC_MAP: Record<string, { metricName: string; priceType: string }> = {
+  '日前电价-发电侧均价': { metricName: '节点电价(全省平均)', priceType: '日前电价' },
+  '实时电价-发电侧均价': { metricName: '节点电价(全省平均)', priceType: '实时电价' },
+};
 
 const SERIES_COLORS: Record<string, string> = {
   '出清前上午': CHART_COLORS.primary,
@@ -35,6 +46,8 @@ export const TrendCard: React.FC = () => {
   const { selectedInterval, trendMetric, trendScenario, setTrendMetric, setTrendScenario, queryDate } = useDashboardStore();
 
   const useSupabase = SUPABASE_METRICS.has(trendMetric);
+  const priceMapping = PRICE_METRIC_MAP[trendMetric];
+  const isPriceMapped = !!priceMapping;
 
   // ── Metric semantics ──
   const { data: semanticsData } = useMetricSemantics();
@@ -45,14 +58,50 @@ export const TrendCard: React.FC = () => {
   const derivedStageRules = useMemo(() => getDerivedStages(rules, trendMetric), [rules, trendMetric]);
   const validStages = useMemo(() => getAllValidStages(rules, trendMetric), [rules, trendMetric]);
 
-  // ── Supabase query (only DB-backed stages) ──
-  const { data: supabaseResult, isLoading, isError, error } = useQuery({
-    queryKey: ['trendMetricPoints', trendMetric, queryDate, dbStages],
-    queryFn: () => fetchTrendMetricPoints(trendMetric, queryDate, '全省', dbStages.length > 0 ? dbStages : undefined),
-    enabled: useSupabase,
+  // ── Price metric query (market_price_points) ──
+  const { data: priceResult, isLoading: priceLoading, isError: priceIsError, error: priceError } = useQuery({
+    queryKey: ['trendPricePoints', priceMapping?.metricName, priceMapping?.priceType, queryDate],
+    queryFn: async () => {
+      const result = await fetchPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate, '实际');
+      // Convert PriceSeriesResult to MetricSeries for unified handling
+      const series: MetricSeries = {
+        metricName: trendMetric,
+        metricFamily: 'price',
+        scenario: '实际' as Scenario,
+        unit: result.unit,
+        node: '全省',
+        data: result.points.map(p => ({
+          dateKey: queryDate,
+          timeKey: p.time,
+          timestamp: p.intervalIndex,
+          value: p.value,
+          unit: result.unit,
+        })),
+      };
+      return {
+        series: result.points.length > 0 ? [series] : [],
+        isIncomplete: result.isIncomplete,
+        totalRows: result.points.length,
+      };
+    },
+    enabled: isPriceMapped,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ── Standard metric query (market_metric_points) ──
+  const { data: supabaseResult, isLoading: metricLoading, isError: metricIsError, error: metricError } = useQuery({
+    queryKey: ['trendMetricPoints', trendMetric, queryDate, dbStages],
+    queryFn: () => fetchTrendMetricPoints(trendMetric, queryDate, '全省', dbStages.length > 0 ? dbStages : undefined),
+    enabled: useSupabase && !isPriceMapped,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const isLoading = isPriceMapped ? priceLoading : (useSupabase ? metricLoading : false);
+  const isError = isPriceMapped ? priceIsError : (useSupabase ? metricIsError : false);
+  const error = isPriceMapped ? priceError : metricError;
+  const queryResult = isPriceMapped ? priceResult : supabaseResult;
 
   // ── Fallback to mock data for non-wired metrics ──
   const mockSeries = useMemo(() => {
@@ -62,7 +111,7 @@ export const TrendCard: React.FC = () => {
 
   // ── Unified series list with frontend-derived stages ──
   const availableSeries = useMemo(() => {
-    const baseSeries = useSupabase ? (supabaseResult?.series ?? []) : mockSeries;
+    const baseSeries = useSupabase ? (queryResult?.series ?? []) : mockSeries;
 
     // Add frontend-derived stages (e.g. 智能预测 for price metrics)
     const enriched = [...baseSeries];
@@ -73,9 +122,9 @@ export const TrendCard: React.FC = () => {
       }
     }
     return enriched;
-  }, [useSupabase, supabaseResult, mockSeries, derivedStageRules]);
+  }, [useSupabase, queryResult, mockSeries, derivedStageRules]);
 
-  const isIncomplete = useSupabase && (supabaseResult?.isIncomplete ?? false);
+  const isIncomplete = useSupabase && (queryResult?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && availableSeries.length === 0;
 
   // Dynamic scenario tabs based on rules
@@ -85,9 +134,14 @@ export const TrendCard: React.FC = () => {
       return availableSeries.map(s => s.scenario);
     }
     // For Supabase metrics, use valid stages from rules filtered to available data
-    return validStages.filter(stage =>
+    const fromRules = validStages.filter(stage =>
       availableSeries.some(s => s.scenario === stage)
     ) as Scenario[];
+    // If rules yield nothing but we have data, show what's available
+    if (fromRules.length === 0 && availableSeries.length > 0) {
+      return availableSeries.map(s => s.scenario);
+    }
+    return fromRules;
   }, [useSupabase, validStages, availableSeries]);
 
   const hasDerived = derivedStageRules.length > 0;
@@ -145,7 +199,7 @@ export const TrendCard: React.FC = () => {
         <div className="flex flex-col h-full gap-3">
           <DashboardTabs tabs={METRIC_TABS} activeTab={trendMetric} onTabChange={setTrendMetric} size="md" />
           <div className="flex items-center justify-center flex-1 text-muted-foreground">
-            <span className="text-sm">未找到所选指标的场景数据</span>
+            <span className="text-sm">当前日期暂无该指标数据</span>
           </div>
         </div>
       </PanelCard>
@@ -169,6 +223,13 @@ export const TrendCard: React.FC = () => {
     >
       <div className="flex flex-col h-full gap-3">
         <DashboardTabs tabs={METRIC_TABS} activeTab={trendMetric} onTabChange={setTrendMetric} size="md" />
+
+        {isPriceMapped && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
+            <Info className="w-3.5 h-3.5" />
+            数据来源：{priceMapping.metricName}（{priceMapping.priceType}）
+          </div>
+        )}
 
         {isIncomplete && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
