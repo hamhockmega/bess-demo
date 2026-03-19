@@ -11,7 +11,7 @@ import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MAIN_SECTIONS: MainSection[] = [
-  '行情趋势', '典型曲线', '峰谷及杂项单价', '市场供需情况', '事前监管', '出清前后对比'
+  '行情趋势', '典型曲线', '峰谷及杂项单价', '市场供需情况'
 ];
 
 const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
