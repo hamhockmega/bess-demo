@@ -110,16 +110,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Secondary nav — light surface tabs */}
       <div className="h-10 bg-card border-b border-border flex items-center px-5 shrink-0">
         {activeParent?.children.map((child) => {
-          const isActive = location.pathname === child.path;
+          const isActive = !child.disabled && location.pathname === child.path;
           return (
             <button
-              key={child.path}
-              onClick={() => navigate(child.path)}
+              key={child.label}
+              onClick={() => {
+                if (child.disabled) {
+                  toast.error('权限未开通，请联系管理员配置');
+                  return;
+                }
+                navigate(child.path);
+              }}
               className={cn(
                 'px-4 py-2 text-sm transition-all duration-200 relative',
-                isActive
-                  ? 'text-primary font-medium tab-active-indicator'
-                  : 'text-muted-foreground hover:text-foreground'
+                child.disabled
+                  ? 'text-muted-foreground/40 cursor-not-allowed'
+                  : isActive
+                    ? 'text-primary font-medium tab-active-indicator'
+                    : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {child.label}
