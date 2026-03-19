@@ -628,7 +628,7 @@ const CustomBoard: React.FC = () => {
 
             // Stage options for wired panels (dynamic if available)
             const stageOptions = isWired
-              ? (wiredConfig.dynamicPriceTypes && dynamicStages[panelName]?.length
+              ? (dynamicStages[panelName]?.length
                   ? dynamicStages[panelName]
                   : getStageOptions(wiredConfig))
               : [];
@@ -672,13 +672,11 @@ const CustomBoard: React.FC = () => {
                     date={primaryDate}
                     stage={getTimePeriod(panelName)}
                     subItem={getSubItem(panelName)}
-                    onAvailableStages={wiredConfig.dynamicPriceTypes
-                      ? (stages) => setDynamicStages(prev => {
-                          const existing = prev[panelName];
-                          if (existing && existing.length === stages.length && existing.every((s, i) => s === stages[i])) return prev;
-                          return { ...prev, [panelName]: stages };
-                        })
-                      : undefined}
+                    onAvailableStages={(stages) => setDynamicStages(prev => {
+                      const existing = prev[panelName];
+                      if (existing && existing.length === stages.length && existing.every((s, i) => s === stages[i])) return prev;
+                      return { ...prev, [panelName]: stages };
+                    })}
                   />
                 ) : (
                   <div className="h-[220px]">
