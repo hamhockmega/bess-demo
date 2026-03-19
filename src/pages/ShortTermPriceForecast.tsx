@@ -44,9 +44,12 @@ export default function ShortTermPriceForecast() {
   const useSupabase = SUPABASE_SIDES.has(side);
 
   // ── Supabase query (source_stage = '实际' only) ──
+  // ── Price metric name: query market_price_points with price_type distinction ──
+  const priceMetricName = side === 'generation' ? '发电侧均价' : '统一结算价';
+
   const { data: supabaseData, isLoading, isError, error } = useQuery({
-    queryKey: ['forecastPriceData', startStr, endStr, queryVersion],
-    queryFn: () => fetchForecastPriceData(startStr, endStr),
+    queryKey: ['forecastPriceData', priceMetricName, startStr, endStr, queryVersion],
+    queryFn: () => fetchForecastActualPriceData(startStr, endStr, priceMetricName),
     enabled: useSupabase,
     staleTime: 60_000,
     retry: 1,
