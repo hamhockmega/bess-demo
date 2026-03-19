@@ -48,7 +48,7 @@ export default function ShortTermPriceForecast() {
     return data.points.filter((p) => p.date === firstDate);
   }, [data]);
 
-  if (useSupabase && isLoading) {
+  if (isLoading) {
     return (
       <AppShell>
         <div className="p-5 flex items-center justify-center h-[60vh] gap-2 text-muted-foreground">
@@ -59,7 +59,7 @@ export default function ShortTermPriceForecast() {
     );
   }
 
-  if (useSupabase && isError) {
+  if (isError) {
     return (
       <AppShell>
         <div className="p-5 flex flex-col items-center justify-center h-[60vh] gap-2 text-destructive">
