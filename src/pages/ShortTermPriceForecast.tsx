@@ -107,12 +107,10 @@ export default function ShortTermPriceForecast() {
           </Button>
         </div>
 
-        {useSupabase && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
-            <Info className="w-3.5 h-3.5" />
-            数据来源：market_price_points（日前电价 + 实时电价，source_stage = 实际）
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
+          <Info className="w-3.5 h-3.5" />
+          数据来源：market_price_points（日前电价 + 实时电价，source_stage = 实际）
+        </div>
 
         {isIncomplete && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600">
