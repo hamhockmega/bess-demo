@@ -134,12 +134,18 @@ const PanelFilter: React.FC<{
 
 // ── Hook to detect available stages for ANY wired panel ──
 
+export interface AvailableStagesResult {
+  stages: string[];
+  /** For price panels: per-price_type row counts */
+  priceTypeCounts?: Record<string, number>;
+}
+
 function useAvailableStages(
   dbMetric: string,
   date: string,
   type: 'price' | 'load',
 ) {
-  return useQuery({
+  return useQuery<AvailableStagesResult>({
     queryKey: ['availableStages', dbMetric, date, type],
     queryFn: async () => {
       if (type === 'price') {
@@ -149,13 +155,20 @@ function useAvailableStages(
           .eq('metric_name', dbMetric)
           .eq('scenario_date', date)
           .eq('source_stage', '实际')
-          .limit(500);
+          .limit(1000);
         if (error) throw error;
-        const types = [...new Set((data ?? []).map(r => r.price_type))];
-        if (types.includes('实时电价') && !types.includes('智能预测')) {
+        const rows = data ?? [];
+        // Count rows per price_type independently
+        const counts: Record<string, number> = {};
+        for (const r of rows) {
+          counts[r.price_type] = (counts[r.price_type] || 0) + 1;
+        }
+        const types = Object.keys(counts);
+        // 智能预测 is available only if 实时电价 has data (prediction is based on it)
+        if (counts['实时电价'] && counts['实时电价'] > 0) {
           types.push('智能预测');
         }
-        return types;
+        return { stages: types, priceTypeCounts: counts };
       } else {
         const { data, error } = await supabase
           .from('market_metric_points')
@@ -164,7 +177,7 @@ function useAvailableStages(
           .eq('scenario_date', date)
           .limit(500);
         if (error) throw error;
-        return [...new Set((data ?? []).map(r => r.source_stage))];
+        return { stages: [...new Set((data ?? []).map(r => r.source_stage))] };
       }
     },
     staleTime: 5 * 60_000,
