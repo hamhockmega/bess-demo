@@ -4,7 +4,19 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import iwattLogo from '@/assets/iwatt-logo.png';
 
-const headerNavItems = [
+interface NavChild {
+  label: string;
+  path: string;
+  disabled?: boolean;
+}
+
+interface NavItem {
+  label: string;
+  path: string;
+  children: NavChild[];
+}
+
+const headerNavItems: NavItem[] = [
   {
     label: '交易看板',
     path: '/spotMarketBoard',
@@ -26,6 +38,7 @@ const headerNavItems = [
     path: '/spotTrading/intelligentQuoteStrategy',
     children: [
       { label: '智能策略(报量报价)', path: '/spotTrading/intelligentQuoteStrategy' },
+      { label: '智能策略(自调度)', path: '#', disabled: true },
       { label: '策略复盘(报量报价)', path: '/spotTrading/reviewQuoteStrategy' },
     ],
   },
