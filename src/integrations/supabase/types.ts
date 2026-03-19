@@ -59,6 +59,57 @@ export type Database = {
         }
         Relationships: []
       }
+      market_price_points: {
+        Row: {
+          created_at: string
+          id: number
+          interval_index: number
+          metric_name: string
+          node_name: string | null
+          price_type: string
+          region_name: string | null
+          remark: string | null
+          scenario_date: string
+          source_column: string | null
+          source_file: string | null
+          source_stage: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          interval_index: number
+          metric_name: string
+          node_name?: string | null
+          price_type: string
+          region_name?: string | null
+          remark?: string | null
+          scenario_date: string
+          source_column?: string | null
+          source_file?: string | null
+          source_stage?: string
+          unit?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          interval_index?: number
+          metric_name?: string
+          node_name?: string | null
+          price_type?: string
+          region_name?: string | null
+          remark?: string | null
+          scenario_date?: string
+          source_column?: string | null
+          source_file?: string | null
+          source_stage?: string
+          unit?: string
+          value?: number
+        }
+        Relationships: []
+      }
       market_scenarios: {
         Row: {
           actual_award_signal: boolean | null

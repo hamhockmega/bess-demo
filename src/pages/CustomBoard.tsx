@@ -18,6 +18,7 @@ import { SaveAsDialog } from '@/components/custom-board/SaveAsDialog';
 import { PanelChart } from '@/components/custom-board/PanelChart';
 import { PANEL_DATA_GENERATORS, ChartDataPoint } from '@/data/customBoardData';
 import { fetchCustomBoardMetric, formatIntervalTime } from '@/data/marketMetricQueries';
+import { fetchPriceSeries } from '@/data/marketPriceQueries';
 import { derivePredictionSeries } from '@/data/derivedPrediction';
 import { computeStorageDispatch, type StorageConfig } from '@/data/storageDispatch';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,11 +42,16 @@ interface WiredPanelConfig {
   /** For price: DB has '实际' only. For load: DB has these stages */
   dbStages: string[];
   unit: string;
+  /** Price panels: which price_types to support */
+  priceTypes?: string[];
 }
 
 const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
-  '节点电价(全省平均)': { dbMetricName: '节点电价(全省平均)', type: 'price', dbStages: ['实际'], unit: '元/MWh' },
-  '统一结算价': { dbMetricName: '统一结算价', type: 'price', dbStages: ['实际'], unit: '元/MWh' },
+  // Price panels → read from market_price_points
+  '节点电价(全省平均)': { dbMetricName: '节点电价(全省平均)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
+  '统一结算价': { dbMetricName: '统一结算价', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
+  '节点电价(门前节点)': { dbMetricName: '节点电价(门前节点)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
+  // Load panels → read from market_metric_points
   '联络线受电负荷': { dbMetricName: '联络线受电负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
   '系统负荷': { dbMetricName: '直调负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
   // Renewable output metrics
@@ -59,12 +65,15 @@ const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
 
 /** Stage display names for wired panels */
 function getStageOptions(config: WiredPanelConfig): string[] {
-  if (config.type === 'price') return ['实际', '智能预测'];
+  if (config.type === 'price') {
+    // Price panels: show price_type options + 智能预测
+    return [...(config.priceTypes ?? ['实时电价']), '智能预测'];
+  }
   return config.dbStages;
 }
 
 const PANEL_SUB_ITEMS: Record<string, string[]> = {
-  '节点电价(门前节点)': ['山东.福山', '山东.青岛', '山东.济南', '山东.烟台'],
+  
   '系统负荷': ['直调负荷', '全网负荷'],
   '联络线受电负荷': ['各联络线', '华北联络线', '华中联络线', '江苏联络线'],
   '新能源出力': ['风电出力', '光伏出力', '合计出力'],
@@ -73,10 +82,11 @@ const PANEL_SUB_ITEMS: Record<string, string[]> = {
   '正负备用': ['正备用', '负备用'],
   '事前监管': ['报价偏差', '出力偏差', '容量偏差'],
   '开停机组数量（市场化）': ['开机数量', '停机数量'],
-  '节点电价(全省平均)': ['加权平均', '算术平均'],
+  '节点电价(门前节点)': ['日前电价', '实时电价'],
+  '节点电价(全省平均)': ['日前电价', '实时电价'],
   '阻塞电价(全省平均)': ['加权平均', '算术平均'],
   '出清电价(交易结果)': ['日前出清', '实时出清'],
-  '统一结算价': ['日前结算', '实时结算'],
+  '统一结算价': ['日前电价', '实时电价'],
   '温度(全省算术平均)': ['最高温', '最低温', '平均温'],
   '风速(风电装机容量加权)': ['加权风速', '最大风速'],
   '辐照(光伏装机容量加权)': ['加权辐照', '峰值辐照'],
@@ -129,6 +139,8 @@ const WiredPanel: React.FC<{
   stage: string;
   subItem: string;
 }> = ({ panelName, config, date, stage, subItem }) => {
+  const isPrice = config.type === 'price';
+
   // Resolve actual DB metric name (系统负荷 sub-items map to different metrics)
   const dbMetric = useMemo(() => {
     if (panelName === '系统负荷') {
@@ -142,17 +154,32 @@ const WiredPanel: React.FC<{
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
 
-  const isDbStage = config.dbStages.includes(stage);
-  const isDerived = stage === '智能预测' && config.type === 'price';
-  const fetchStage = isDerived ? '实际' : stage;
+  const isDerived = stage === '智能预测' && isPrice;
+  // For price panels: stage is a price_type (日前电价/实时电价) or 智能预测
+  // For 智能预测, derive from 实时电价
+  const priceType = isDerived ? '实时电价' : stage;
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['customBoardMetric', dbMetric, date, fetchStage],
-    queryFn: () => fetchCustomBoardMetric(dbMetric, date, fetchStage),
-    enabled: isDbStage || isDerived,
+  // ── Price panel query (market_price_points) ──
+  const { data: priceData, isLoading: priceLoading, isError: priceError } = useQuery({
+    queryKey: ['customBoardPrice', dbMetric, date, priceType],
+    queryFn: () => fetchPriceSeries(dbMetric, priceType, date, '实际'),
+    enabled: isPrice,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ── Load panel query (market_metric_points) ──
+  const { data: metricData, isLoading: metricLoading, isError: metricError } = useQuery({
+    queryKey: ['customBoardMetric', dbMetric, date, stage],
+    queryFn: () => fetchCustomBoardMetric(dbMetric, date, stage),
+    enabled: !isPrice,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const isLoading = isPrice ? priceLoading : metricLoading;
+  const isError = isPrice ? priceError : metricError;
+  const rawData = isPrice ? priceData : metricData;
 
   if (isLoading) {
     return (
@@ -172,7 +199,7 @@ const WiredPanel: React.FC<{
     );
   }
 
-  if (!data || data.points.length === 0) {
+  if (!rawData || rawData.points.length === 0) {
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前指标暂无可用场景数据</span>
@@ -181,12 +208,12 @@ const WiredPanel: React.FC<{
   }
 
   // Convert to ChartDataPoint format
-  let chartData: ChartDataPoint[] = data.points.map(p => ({
+  let chartData: ChartDataPoint[] = rawData.points.map(p => ({
     time: p.time,
     value: p.value,
   }));
 
-  // For price metrics with 智能预测, derive prediction from actual
+  // For price metrics with 智能预测, derive prediction from actual 实时电价
   if (isDerived) {
     const actualSeries: MetricSeries = {
       metricName: dbMetric,
@@ -194,7 +221,7 @@ const WiredPanel: React.FC<{
       scenario: '实际',
       unit: config.unit,
       node: '全省',
-      data: data.points.map(p => ({
+      data: rawData.points.map(p => ({
         dateKey: date,
         timeKey: p.time,
         timestamp: p.intervalIndex,
@@ -203,22 +230,31 @@ const WiredPanel: React.FC<{
       })),
     };
     const predicted = derivePredictionSeries(actualSeries);
-    chartData = data.points.map((p, i) => ({
+    chartData = rawData.points.map((p, i) => ({
       time: p.time,
       value: p.value,
       value2: predicted.data[i]?.value ?? 0,
     }));
   }
 
+  // Label for current price type
+  const priceTypeLabel = isPrice && !isDerived ? `当前展示价格类型：${stage}` : null;
+
   return (
     <div className="space-y-1">
       {isDerived && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-600">
           <Info className="w-3 h-3" />
-          智能预测为前端派生展示值
+          智能预测基于实时电价确定性派生
         </div>
       )}
-      {data.isIncomplete && (
+      {priceTypeLabel && (
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-muted-foreground">
+          <Info className="w-3 h-3" />
+          {priceTypeLabel}
+        </div>
+      )}
+      {rawData.isIncomplete && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-amber-600">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
@@ -250,10 +286,10 @@ const StorageDispatchPanel: React.FC<{ date: string }> = ({ date }) => {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch actual real-time prices for dispatch computation
+  // Fetch actual real-time prices for dispatch computation (from market_price_points)
   const { data: priceData } = useQuery({
-    queryKey: ['customBoardMetric', '实时电价-发电侧均价', date, '实际'],
-    queryFn: () => fetchCustomBoardMetric('实时电价-发电侧均价', date, '实际'),
+    queryKey: ['storageDispatchPrice', '发电侧均价', date],
+    queryFn: () => fetchPriceSeries('发电侧均价', '实时电价', date, '实际'),
     staleTime: 60_000,
   });
 
