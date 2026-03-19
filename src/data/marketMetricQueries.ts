@@ -145,21 +145,24 @@ export async function fetchForecastPriceData(
 ): Promise<ForecastQueryResult> {
   const dayAheadMetric = '日前电价-发电侧均价';
   const realTimeMetric = '实时电价-发电侧均价';
+  const sourceStage = '智能预测';
 
-  // Fetch both metrics in parallel
+  // Fetch both metrics in parallel, filtering to single source_stage
   const [dayAheadRes, realTimeRes] = await Promise.all([
     supabase
       .from('market_metric_points')
-      .select('scenario_date, interval_index, value, unit, source_stage')
+      .select('scenario_date, interval_index, value, unit')
       .eq('metric_name', dayAheadMetric)
+      .eq('source_stage', sourceStage)
       .gte('scenario_date', startDate)
       .lte('scenario_date', endDate)
       .order('scenario_date', { ascending: true })
       .order('interval_index', { ascending: true }),
     supabase
       .from('market_metric_points')
-      .select('scenario_date, interval_index, value, unit, source_stage')
+      .select('scenario_date, interval_index, value, unit')
       .eq('metric_name', realTimeMetric)
+      .eq('source_stage', sourceStage)
       .gte('scenario_date', startDate)
       .lte('scenario_date', endDate)
       .order('scenario_date', { ascending: true })
@@ -185,21 +188,11 @@ export async function fetchForecastPriceData(
     };
   }
 
-  // Index rows by "date|interval_index" for fast lookup
-  // Prefer source_stage priority: 实际 > 出清前上午 > 智能预测
-  const STAGE_PRIORITY: Record<string, number> = { '实际': 3, '出清前上午': 2, '智能预测': 1 };
-
-  type IndexedVal = { value: number; stage: string; priority: number };
-
-  function buildIndex(rows: typeof dayAheadRows): Map<string, IndexedVal> {
-    const idx = new Map<string, IndexedVal>();
+  // Index rows by "date|interval_index" — no priority merge, single source_stage
+  function buildIndex(rows: typeof dayAheadRows): Map<string, number> {
+    const idx = new Map<string, number>();
     for (const r of rows) {
-      const key = `${r.scenario_date}|${r.interval_index}`;
-      const priority = STAGE_PRIORITY[r.source_stage] ?? 0;
-      const existing = idx.get(key);
-      if (!existing || priority > existing.priority) {
-        idx.set(key, { value: Number(r.value), stage: r.source_stage, priority });
-      }
+      idx.set(`${r.scenario_date}|${r.interval_index}`, Number(r.value));
     }
     return idx;
   }
@@ -207,7 +200,6 @@ export async function fetchForecastPriceData(
   const dayAheadIdx = buildIndex(dayAheadRows);
   const realTimeIdx = buildIndex(realTimeRows);
 
-  // Collect all unique dates
   const dateSet = new Set<string>();
   for (const r of dayAheadRows) dateSet.add(String(r.scenario_date));
   for (const r of realTimeRows) dateSet.add(String(r.scenario_date));
@@ -221,18 +213,19 @@ export async function fetchForecastPriceData(
     let dayDaSum = 0, dayRtSum = 0, dayCount = 0;
     let dateHasGap = false;
 
-    for (let i = 0; i < 96; i++) {
+    // interval_index is 1-based: 1..96
+    for (let i = 1; i <= 96; i++) {
       const key = `${date}|${i}`;
       const da = dayAheadIdx.get(key);
       const rt = realTimeIdx.get(key);
 
-      if (!da && !rt) {
+      if (da === undefined && rt === undefined) {
         dateHasGap = true;
         continue;
       }
 
-      const daVal = da?.value ?? 0;
-      const rtVal = rt?.value ?? 0;
+      const daVal = da ?? 0;
+      const rtVal = rt ?? 0;
 
       allPoints.push({
         date,
@@ -258,14 +251,12 @@ export async function fetchForecastPriceData(
     }
   }
 
-  // Accuracy: ratio of points where |dayAhead - realTime| < threshold
   const threshold = 150;
   const accurate = allPoints.filter((p) => Math.abs(p.dayAhead - p.realTime) < threshold).length;
   const accuracy = allPoints.length > 0
     ? Math.round((accurate / allPoints.length) * 10000) / 100
     : 0;
 
-  // Build summaries from queried data
   function buildSummary(label: string, vals: { val: number; date: string; time: string }[]): ForecastPriceSummary {
     if (vals.length === 0) return { label, avg: 0, max: 0, maxTime: '', min: 0, minTime: '' };
     let max = -Infinity, min = Infinity, maxTime = '', minTime = '', sum = 0;
