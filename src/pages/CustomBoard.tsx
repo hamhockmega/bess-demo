@@ -330,10 +330,10 @@ const WiredPanel: React.FC<{
 
   return (
     <div className="space-y-1">
-      {isDerived && (
+      {isPredicted && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-primary/80">
           <Info className="w-3 h-3" />
-          智能预测基于实时电价确定性派生
+          {hasSqlPredicted ? '智能预测优先使用已导入预测数据' : '当前预测值为前端派生展示值'}
         </div>
       )}
       {priceTypeLabel && (
