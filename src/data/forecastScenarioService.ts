@@ -257,6 +257,11 @@ export function getForecastScenarioByDate(date: string): ForecastScenario | null
 /**
  * Load a forecast scenario, preferring real DB data over mock.
  * Async version that tries DB first.
+ *
+ * For front_node_price: if market_scenarios has data, use it.
+ * Additionally, if SQL-backed predicted real-time prices exist in
+ * market_price_points (source_stage='智能预测', price_type='实时电价'),
+ * overlay them as the predicted front-node price basis for strategy generation.
  */
 export async function getForecastScenarioByDateAsync(date: string): Promise<ForecastScenario | null> {
   if (!date) return null;
@@ -265,6 +270,18 @@ export async function getForecastScenarioByDateAsync(date: string): Promise<Fore
   // Try DB first
   const dbScenario = await loadScenarioFromDb(date);
   if (dbScenario && dbScenario.intervals.length >= 90) {
+    // Try to overlay SQL-backed predicted real-time prices onto front_node_price
+    const predictedRt = await fetchPredictedPriceSeries('节点电价(全省平均)', '实时电价', date);
+    if (predictedRt.points.length >= 90) {
+      const predictedMap = new Map(predictedRt.points.map(p => [p.intervalIndex, p.value]));
+      for (const iv of dbScenario.intervals) {
+        const predicted = predictedMap.get(iv.intervalIndex) ?? predictedMap.get(iv.intervalIndex + 1);
+        if (predicted !== undefined) {
+          iv.frontNodePrice = predicted;
+        }
+      }
+      dbScenario.source = '实际市场数据 + 已导入预测电价';
+    }
     scenarioCache.set(date, dbScenario);
     return dbScenario;
   }
