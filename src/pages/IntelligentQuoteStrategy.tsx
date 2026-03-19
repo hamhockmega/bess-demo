@@ -21,7 +21,7 @@ import {
   type UIMode,
 } from '@/data/strategyData';
 import { generateStrategyPerformance, type StrategyPerformance } from '@/data/strategyPerformanceData';
-import { strategySnapshotRepository, type StrategySnapshot } from '@/data/reviewData';
+import { saveGeneratedStrategyToSupabase } from '@/data/strategySaveService';
 import {
   Sheet,
   SheetContent,
