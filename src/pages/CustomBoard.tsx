@@ -134,6 +134,11 @@ const WiredPanel: React.FC<{
     if (panelName === '系统负荷') {
       return subItem === '全网负荷' ? '全网负荷' : '直调负荷';
     }
+    if (panelName === '新能源出力') {
+      if (subItem === '风电出力') return '风电出力';
+      if (subItem === '光伏出力') return '光伏出力';
+      return '新能源出力';
+    }
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
 
