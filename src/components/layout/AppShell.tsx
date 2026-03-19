@@ -34,6 +34,7 @@ const headerNavItems = [
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const activeParent = headerNavItems.find((item) =>
     item.children.some((c) => location.pathname === c.path)
