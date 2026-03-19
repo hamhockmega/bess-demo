@@ -199,43 +199,22 @@ async function fetchDbScenarioDates(): Promise<string[]> {
 
 // ── Public API ──
 
-/** List available forecast dates: real DB dates + next 7 days for mock */
+/** List available forecast dates: only DB-backed dates */
 export function listForecastScenarioDates(): string[] {
-  const dates = new Set<string>();
-
-  // Add next 7 days (always available as deterministic mock)
-  const today = new Date();
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dates.add(d.toISOString().slice(0, 10));
-  }
-
-  // DB dates will be added asynchronously
   if (dbDatesCache) {
-    for (const d of dbDatesCache) dates.add(d);
-  } else {
-    // Trigger background fetch
-    fetchDbScenarioDates();
+    return [...dbDatesCache].sort();
   }
-
-  return [...dates].sort();
+  // Trigger background fetch
+  fetchDbScenarioDates();
+  return [];
 }
 
 /**
  * List dates including DB-backed scenario dates (async version).
  */
 export async function listForecastScenarioDatesAsync(): Promise<string[]> {
-  const dates = new Set<string>();
-  const today = new Date();
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dates.add(d.toISOString().slice(0, 10));
-  }
   const dbDates = await fetchDbScenarioDates();
-  for (const d of dbDates) dates.add(d);
-  return [...dates].sort();
+  return [...dbDates].sort();
 }
 
 /** Load a forecast scenario for a given date (sync, uses cache or deterministic mock) */
