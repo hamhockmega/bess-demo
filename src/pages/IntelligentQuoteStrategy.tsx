@@ -87,7 +87,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
     if (saving) return;
     setSaving(true);
     try {
-      const result = await saveGeneratedStrategyToSupabase(form, strategy, performance);
+      const result = await saveGeneratedStrategyToSupabase(form, strategy, performance, forecastDate);
       if (result.success) {
         toast.success('已成功保存为复盘策略');
       } else {

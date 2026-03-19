@@ -119,6 +119,8 @@ export const DEFAULT_STRATEGY_FORM: StrategyForm = {
   minSoc: 4,
   minContinuousChargeTime: 1,
   minContinuousDischargeTime: 0.5,
+  chargingEfficiency: 95,
+  dischargingEfficiency: 94,
 };
 
 // ── Mock data generators ──
