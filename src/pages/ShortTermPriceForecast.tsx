@@ -127,7 +127,7 @@ export default function ShortTermPriceForecast() {
 
         {data.points.length > 0 && (
           <>
-            <PanelCard title={`价格分析结果 (${PRICE_LABELS[side]})`} headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
+            <PanelCard title="价格分析结果 (统一结算价)" headerRight={<ChartInfoButton info={CHART_INFO.dayAheadRealTime} />}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="flex flex-col items-center justify-center py-8 bg-secondary rounded-lg">
                   <span className="text-xs text-muted-foreground mb-2 font-medium">日前与实时价格一致率</span>
