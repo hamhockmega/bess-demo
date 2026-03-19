@@ -44,6 +44,8 @@ interface WiredPanelConfig {
   unit: string;
   /** Price panels: which price_types to support */
   priceTypes?: string[];
+  /** If true, dynamically detect available price types from DB */
+  dynamicPriceTypes?: boolean;
 }
 
 const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
