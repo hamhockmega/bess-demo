@@ -95,6 +95,134 @@ export type Database = {
         }
         Relationships: []
       }
+      metric_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          metric_group: string
+          metric_name: string
+          unit: string
+          value_source_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          metric_group: string
+          metric_name: string
+          unit: string
+          value_source_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          metric_group?: string
+          metric_name?: string
+          unit?: string
+          value_source_type?: string
+        }
+        Relationships: []
+      }
+      metric_stage_rules: {
+        Row: {
+          created_at: string
+          derived_from_stage: string | null
+          enabled: boolean
+          id: number
+          metric_name: string
+          sort_order: number
+          source_stage: string
+          stage_source_type: string
+        }
+        Insert: {
+          created_at?: string
+          derived_from_stage?: string | null
+          enabled?: boolean
+          id?: number
+          metric_name: string
+          sort_order?: number
+          source_stage: string
+          stage_source_type: string
+        }
+        Update: {
+          created_at?: string
+          derived_from_stage?: string | null
+          enabled?: boolean
+          id?: number
+          metric_name?: string
+          sort_order?: number
+          source_stage?: string
+          stage_source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_stage_rules_metric_name_fkey"
+            columns: ["metric_name"]
+            isOneToOne: false
+            referencedRelation: "metric_catalog"
+            referencedColumns: ["metric_name"]
+          },
+        ]
+      }
+      storage_asset_config: {
+        Row: {
+          asset_code: string
+          asset_name: string
+          charging_efficiency: number
+          created_at: string
+          default_initial_soc: number
+          default_target_end_soc: number | null
+          discharging_efficiency: number
+          enabled: boolean
+          min_continuous_charge_intervals: number | null
+          min_continuous_discharge_intervals: number | null
+          other_daily_cost: number | null
+          rated_capacity_mwh: number
+          rated_power_mw: number
+          region_name: string | null
+          soc_max: number
+          soc_min: number
+          throughput_cost_per_mwh: number | null
+        }
+        Insert: {
+          asset_code: string
+          asset_name: string
+          charging_efficiency: number
+          created_at?: string
+          default_initial_soc: number
+          default_target_end_soc?: number | null
+          discharging_efficiency: number
+          enabled?: boolean
+          min_continuous_charge_intervals?: number | null
+          min_continuous_discharge_intervals?: number | null
+          other_daily_cost?: number | null
+          rated_capacity_mwh: number
+          rated_power_mw: number
+          region_name?: string | null
+          soc_max: number
+          soc_min: number
+          throughput_cost_per_mwh?: number | null
+        }
+        Update: {
+          asset_code?: string
+          asset_name?: string
+          charging_efficiency?: number
+          created_at?: string
+          default_initial_soc?: number
+          default_target_end_soc?: number | null
+          discharging_efficiency?: number
+          enabled?: boolean
+          min_continuous_charge_intervals?: number | null
+          min_continuous_discharge_intervals?: number | null
+          other_daily_cost?: number | null
+          rated_capacity_mwh?: number
+          rated_power_mw?: number
+          region_name?: string | null
+          soc_max?: number
+          soc_min?: number
+          throughput_cost_per_mwh?: number | null
+        }
+        Relationships: []
+      }
       strategy_schedule_points: {
         Row: {
           benchmark_price: number | null
