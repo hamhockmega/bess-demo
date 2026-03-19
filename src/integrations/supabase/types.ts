@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      market_scenarios: {
+        Row: {
+          actual_award_signal: boolean | null
+          actual_load: number | null
+          created_at: string
+          front_node_price: number
+          id: number
+          interval_index: number
+          remark: string | null
+          scenario_date: string
+          user_settlement_price: number
+        }
+        Insert: {
+          actual_award_signal?: boolean | null
+          actual_load?: number | null
+          created_at?: string
+          front_node_price: number
+          id?: number
+          interval_index: number
+          remark?: string | null
+          scenario_date: string
+          user_settlement_price: number
+        }
+        Update: {
+          actual_award_signal?: boolean | null
+          actual_load?: number | null
+          created_at?: string
+          front_node_price?: number
+          id?: number
+          interval_index?: number
+          remark?: string | null
+          scenario_date?: string
+          user_settlement_price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
