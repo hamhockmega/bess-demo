@@ -464,11 +464,15 @@ const StorageDispatchPanel: React.FC<{ date: string }> = ({ date }) => {
 };
 
 const CustomBoard: React.FC = () => {
-  const [dateMode, setDateMode] = useState<'多日' | '段'>('段');
-  const [selectedDates, setSelectedDates] = useState<Date[]>([new Date('2025-07-15')]);
+  const [today] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  });
+  const [dateMode, setDateMode] = useState<'多日' | '段'>('多日');
+  const [selectedDates, setSelectedDates] = useState<Date[]>([today]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date('2025-07-01'),
-    to: new Date('2025-07-31'),
+    from: today,
+    to: today,
   });
 
   const [templates, setTemplates] = useState(loadTemplates);

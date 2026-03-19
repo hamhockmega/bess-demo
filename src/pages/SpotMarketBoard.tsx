@@ -6,14 +6,12 @@ import { TrendCard } from '@/components/cards/TrendCard';
 import { TypicalCurveCard } from '@/components/cards/TypicalCurveCard';
 import { TariffCard } from '@/components/cards/TariffCard';
 import { SupplyDemandCard } from '@/components/cards/SupplyDemandCard';
-import { SupervisionCard } from '@/components/cards/SupervisionCard';
-import { ClearingComparisonCard } from '@/components/cards/ClearingComparisonCard';
 import { useDashboardStore, type MainSection } from '@/store/dashboardState';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MAIN_SECTIONS: MainSection[] = [
-  '行情趋势', '典型曲线', '峰谷及杂项单价', '市场供需情况', '事前监管', '出清前后对比'
+  '行情趋势', '典型曲线', '峰谷及杂项单价', '市场供需情况'
 ];
 
 const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
@@ -22,8 +20,6 @@ const SectionContent: React.FC<{ section: MainSection }> = ({ section }) => {
     case '典型曲线': return <TypicalCurveCard />;
     case '峰谷及杂项单价': return <TariffCard />;
     case '市场供需情况': return <SupplyDemandCard />;
-    case '事前监管': return <SupervisionCard />;
-    case '出清前后对比': return <ClearingComparisonCard />;
   }
 };
 
@@ -46,15 +42,6 @@ const SpotMarketBoard: React.FC = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
             />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-medium">月:</span>
-            <select className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
-              <option>3月</option>
-              <option>2月</option>
-              <option>1月</option>
-            </select>
           </div>
 
           <div className="flex items-center gap-2">
