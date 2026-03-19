@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,10 @@ import {
 } from '@/data/strategyData';
 import type { StrategyPerformance } from '@/data/strategyPerformanceData';
 import type { ForecastScenario } from '@/data/forecastScenarioService';
-import { listForecastScenarioDates, getForecastScenarioByDate } from '@/data/forecastScenarioService';
+import {
+  listForecastScenarioDatesAsync,
+  getForecastScenarioByDateAsync,
+} from '@/data/forecastScenarioService';
 import { buildStrategyFromScenario } from '@/data/strategyGenerationEngine';
 import { saveGeneratedStrategyToSupabase } from '@/data/strategySaveService';
 import {
@@ -59,21 +62,36 @@ const IntelligentQuoteStrategy: React.FC = () => {
   const [forecastDate, setForecastDate] = useState<string>('');
   const [scenario, setScenario] = useState<ForecastScenario | null>(null);
   const [scenarioSource, setScenarioSource] = useState('智能预测模型');
+  const [scenarioLoading, setScenarioLoading] = useState(false);
 
-  const availableDates = useMemo(() => listForecastScenarioDates(), []);
+  // Load available dates asynchronously (includes DB dates)
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  useEffect(() => {
+    listForecastScenarioDatesAsync().then(setAvailableDates);
+  }, []);
 
   const handleDateSelect = useCallback(
-    (date: Date | undefined) => {
+    async (date: Date | undefined) => {
       if (!date) return;
       const dateStr = format(date, 'yyyy-MM-dd');
       setForecastDate(dateStr);
-      const loaded = getForecastScenarioByDate(dateStr);
-      if (loaded) {
-        setScenario(loaded);
-        toast.success('已载入预测场景');
-      } else {
-        setScenario(null);
-        toast.error('未找到所选日期的预测场景');
+      setScenarioLoading(true);
+      setScenario(null);
+
+      try {
+        const loaded = await getForecastScenarioByDateAsync(dateStr);
+        if (loaded) {
+          setScenario(loaded);
+          const sourceLabel = loaded.source === '实际市场数据' ? '实际市场数据' : '智能预测模型（确定性模拟）';
+          toast.success(`已载入预测场景（来源：${sourceLabel}）`);
+        } else {
+          toast.error('未找到所选日期的预测场景');
+        }
+      } catch (e) {
+        console.error('[IntelligentQuoteStrategy] scenario load error:', e);
+        toast.error('载入预测场景失败');
+      } finally {
+        setScenarioLoading(false);
       }
     },
     [],
@@ -82,6 +100,10 @@ const IntelligentQuoteStrategy: React.FC = () => {
   const handleSaveForReview = useCallback(async () => {
     if (!strategy || !performance) {
       toast.error('请先生成策略后再保存');
+      return;
+    }
+    if (!forecastDate) {
+      toast.error('缺少预测日期，无法保存');
       return;
     }
     if (saving) return;
@@ -99,7 +121,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [strategy, performance, form, saving]);
+  }, [strategy, performance, form, forecastDate, saving]);
 
   const handleGenerate = useCallback(() => {
     if (!scenario) {
@@ -110,7 +132,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
     setStrategy(gen);
     setPerformance(perf);
     setUiMode('afterGenerate');
-    toast.success('智能策略已生成');
+    toast.success('智能策略已生成（确定性引擎）');
   }, [form, scenario, forecastDate]);
 
   const handleReset = useCallback(() => {
@@ -166,7 +188,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-              基于SOC约束、运行边界与申报参数，自动生成独立储能电站现货市场报量报价推荐方案。
+              基于SOC约束、运行边界与申报参数，自动生成独立储能电站现货市场报量报价推荐方案。同一场景与参数始终生成相同策略。
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -176,7 +198,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
                   重置参数
                 </Button>
-                <Button size="sm" onClick={handleGenerate} disabled={!scenario}>
+                <Button size="sm" onClick={handleGenerate} disabled={!scenario || scenarioLoading}>
                   <Zap className="w-3.5 h-3.5 mr-1" />
                   获取智能策略
                 </Button>
@@ -254,12 +276,14 @@ const IntelligentQuoteStrategy: React.FC = () => {
 
               {/* Status indicator */}
               <div className="flex items-center h-8">
-                {scenario ? (
+                {scenarioLoading ? (
+                  <span className="text-xs text-muted-foreground">正在载入预测场景...</span>
+                ) : scenario ? (
                   <Badge variant="outline" className="status-pill-success text-xs">
-                    已载入 · {scenario.intervals.length} 个时段
+                    已载入 · {scenario.intervals.length} 个时段 · {scenario.source}
                   </Badge>
                 ) : forecastDate ? (
-                  <span className="text-xs text-muted-foreground">正在载入预测场景...</span>
+                  <span className="text-xs text-muted-foreground">未找到预测场景</span>
                 ) : (
                   <span className="text-xs text-muted-foreground">请先选择预测日期</span>
                 )}
@@ -282,7 +306,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
                 重置参数
               </Button>
-              <Button onClick={handleGenerate} disabled={!scenario}>
+              <Button onClick={handleGenerate} disabled={!scenario || scenarioLoading}>
                 <Zap className="w-3.5 h-3.5 mr-1" />
                 获取智能策略
               </Button>
@@ -297,8 +321,9 @@ const IntelligentQuoteStrategy: React.FC = () => {
             {scenario && (
               <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2">
                 <span>预测日期：<strong className="text-foreground">{forecastDate}</strong></span>
-                <span>场景来源：<strong className="text-foreground">{scenarioSource}</strong></span>
+                <span>场景来源：<strong className="text-foreground">{scenario.source}</strong></span>
                 <span>时段数：<strong className="text-foreground">{scenario.intervals.length}</strong></span>
+                <span className="text-muted-foreground/60">同一场景与参数始终生成相同策略</span>
               </div>
             )}
 
