@@ -8,7 +8,7 @@ import { StrategyResultChart } from '@/components/strategy/StrategyResultChart';
 import { RuntimeParameterPanel } from '@/components/strategy/RuntimeParameterPanel';
 import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerformanceSummary';
 import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
-import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
+
 import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
 import { ScenarioPreviewPanel } from '@/components/strategy/ScenarioPreviewPanel';
 import { PanelCard } from '@/components/dashboard/PanelCard';
@@ -249,12 +249,18 @@ const IntelligentQuoteStrategy: React.FC = () => {
                     <Calendar
                       mode="single"
                       selected={selectedCalDate}
-                      onSelect={handleDateSelect}
-                      disabled={(date) => {
+                      onSelect={(date) => {
+                        if (!date) return;
                         const ds = format(date, 'yyyy-MM-dd');
-                        return !availableDateSet.has(ds);
+                        if (!availableDateSet.has(ds)) {
+                          toast.error('未开放预测价格信息权限');
+                          return;
+                        }
+                        handleDateSelect(date);
                       }}
                       className={cn('p-3 pointer-events-auto')}
+                      modifiers={{ unavailable: (date) => !availableDateSet.has(format(date, 'yyyy-MM-dd')) }}
+                      modifiersClassNames={{ unavailable: 'text-muted-foreground/40 cursor-not-allowed' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -359,10 +365,7 @@ const IntelligentQuoteStrategy: React.FC = () => {
               <div className="space-y-4 pt-2">
                 <StrategyPerformanceSummary perf={performance} />
                 <StrategyRevenueBreakdown perf={performance} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <StrategyAwardProbabilityPanel perf={performance} />
-                  <StrategyCalculationLogicPanel perf={performance} />
-                </div>
+                <StrategyCalculationLogicPanel perf={performance} />
               </div>
             )}
           </>

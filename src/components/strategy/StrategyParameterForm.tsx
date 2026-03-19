@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { toast } from 'sonner';
 import type { StrategyForm, StrategyMode, LossCostMode } from '@/data/strategyData';
 
 interface Props {
@@ -94,6 +95,26 @@ export const StrategyParameterForm: React.FC<Props> = ({ form, onChange }) => {
               <SelectContent>
                 <SelectItem value="单日收益最优">单日收益最优</SelectItem>
                 <SelectItem value="风险最小化">风险最小化</SelectItem>
+                <div
+                  className="relative flex w-full cursor-not-allowed select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-xs text-muted-foreground/50"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toast.error('权限未开通，请联系管理员配置');
+                  }}
+                >
+                  度电利润最大化
+                </div>
+                <div
+                  className="relative flex w-full cursor-not-allowed select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-xs text-muted-foreground/50"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toast.error('权限未开通，请联系管理员配置');
+                  }}
+                >
+                  中标概率最大化
+                </div>
               </SelectContent>
             </Select>
           </Field>
