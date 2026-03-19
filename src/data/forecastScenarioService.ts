@@ -213,16 +213,8 @@ export function listForecastScenarioDates(): string[] {
  * List dates including DB-backed scenario dates (async version).
  */
 export async function listForecastScenarioDatesAsync(): Promise<string[]> {
-  const dates = new Set<string>();
-  const today = new Date();
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dates.add(d.toISOString().slice(0, 10));
-  }
   const dbDates = await fetchDbScenarioDates();
-  for (const d of dbDates) dates.add(d);
-  return [...dates].sort();
+  return [...dbDates].sort();
 }
 
 /** Load a forecast scenario for a given date (sync, uses cache or deterministic mock) */
