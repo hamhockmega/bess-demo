@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { IntervalType, Scenario } from '@/data/mockData';
 
-export type MainSection = '行情趋势' | '典型曲线' | '峰谷及杂项单价' | '市场供需情况' | '事前监管' | '出清前后对比';
+export type MainSection = '行情趋势' | '典型曲线' | '峰谷及杂项单价' | '市场供需情况';
 
 interface DashboardState {
   selectedDate: string;

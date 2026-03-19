@@ -153,7 +153,10 @@ const SidebarGroup: React.FC<{ title: string; items: { label: string; path: stri
 };
 
 const SidebarItem: React.FC<{ label: string }> = ({ label }) => (
-  <button className="flex items-center gap-2 w-full text-xs text-muted-foreground py-1.5 px-1 hover:bg-secondary/40 hover:text-foreground rounded-sm">
+  <button
+    className="flex items-center gap-2 w-full text-xs text-muted-foreground py-1.5 px-1 hover:bg-secondary/40 hover:text-foreground rounded-sm"
+    onClick={() => toast.error('权限未开通，请联系管理员配置')}
+  >
     <span className="text-[10px]">◆</span>
     {label}
     <span className="ml-auto text-[10px]">▼</span>

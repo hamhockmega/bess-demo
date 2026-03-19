@@ -45,15 +45,6 @@ const SpotMarketBoard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-medium">月:</span>
-            <select className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
-              <option>3月</option>
-              <option>2月</option>
-              <option>1月</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground font-medium">段:</span>
             <select className="bg-card border border-border rounded-md px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
               <option>全天</option>
