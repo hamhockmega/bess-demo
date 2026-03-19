@@ -50,7 +50,7 @@ const WIRED_PANELS: Partial<Record<PanelName, WiredPanelConfig>> = {
   // Price panels → read from market_price_points
   '节点电价(全省平均)': { dbMetricName: '节点电价(全省平均)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
   '统一结算价': { dbMetricName: '统一结算价', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
-  '节点电价(门前节点)': { dbMetricName: '节点电价(门前节点)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'] },
+  '节点电价(门前节点)': { dbMetricName: '节点电价(门前节点)', type: 'price', dbStages: ['实际'], unit: '元/MWh', priceTypes: ['日前电价', '实时电价'], dynamicPriceTypes: true },
   // Load panels → read from market_metric_points
   '联络线受电负荷': { dbMetricName: '联络线受电负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
   '系统负荷': { dbMetricName: '直调负荷', type: 'load', dbStages: ['周前', '出清前上午', '出清后', '实际'], unit: 'MW' },
