@@ -26,12 +26,20 @@ const ACTION_MAP: Record<string, string> = {
   '空闲': 'idle',
 };
 
-/** Map page state into a strategy_snapshots insert row */
-function mapSnapshotRow(form: StrategyForm, strategy: GeneratedStrategy, perf: StrategyPerformance) {
+/**
+ * Map page state into a strategy_snapshots insert row.
+ * strategy_date is bound to the selected forecastDate, NOT the current system date.
+ */
+function mapSnapshotRow(
+  form: StrategyForm,
+  strategy: GeneratedStrategy,
+  perf: StrategyPerformance,
+  forecastDate: string,
+) {
   return {
     strategy_name: strategy.strategyName,
     strategy_source_type: 'generated' as const,
-    strategy_date: new Date().toISOString().slice(0, 10),
+    strategy_date: forecastDate, // bound to forecast date
     initial_soc: form.initialSoc,
     soc_min: form.minSoc,
     soc_max: form.maxSoc,
@@ -43,7 +51,7 @@ function mapSnapshotRow(form: StrategyForm, strategy: GeneratedStrategy, perf: S
     discharging_efficiency: perf.dischargingEfficiency,
     other_costs: perf.otherCosts,
     capacity: form.availableCapacity,
-    notes: `由智能策略生成，${strategy.createdAt}`,
+    notes: `由智能策略生成，预测日期 ${forecastDate}，${strategy.createdAt}`,
     generated_at: new Date().toISOString(),
     expected_profit: perf.netProfit,
     expected_award_probability: perf.awardProbability,
@@ -52,7 +60,6 @@ function mapSnapshotRow(form: StrategyForm, strategy: GeneratedStrategy, perf: S
 
 /**
  * Validate and map quotation segments into strategy_segments insert rows.
- * Converts Chinese direction values to DB values (charge/discharge).
  */
 function mapSegmentRows(snapshotId: number, segments: QuotationSegment[]): { rows: any[] } | { error: string } {
   const rows: any[] = [];
@@ -76,7 +83,6 @@ function mapSegmentRows(snapshotId: number, segments: QuotationSegment[]): { row
 
 /**
  * Map schedule points into strategy_schedule_points insert rows.
- * Converts Chinese action values to DB values (charge/discharge/idle).
  */
 function mapSchedulePointRows(snapshotId: number, points: SchedulePoint[]): { rows: any[] } | { error: string } {
   const rows: any[] = [];
@@ -118,12 +124,13 @@ async function rollbackSnapshot(snapshotId: number) {
 
 /**
  * Save a generated strategy + segments + schedule points to Supabase.
- * Returns the new snapshot ID on success.
+ * @param forecastDate The selected forecast date to persist as strategy_date.
  */
 export async function saveGeneratedStrategyToSupabase(
   form: StrategyForm,
   strategy: GeneratedStrategy,
   perf: StrategyPerformance,
+  forecastDate: string,
 ): Promise<SaveStrategyResult> {
   // Step 1: Validate segments exist
   if (!strategy.quotationSegments || strategy.quotationSegments.length === 0) {
@@ -131,7 +138,7 @@ export async function saveGeneratedStrategyToSupabase(
   }
 
   // Step 2: Insert snapshot
-  const snapshotRow = mapSnapshotRow(form, strategy, perf);
+  const snapshotRow = mapSnapshotRow(form, strategy, perf, forecastDate);
   console.info('[strategySaveService] Inserting snapshot:', snapshotRow);
   const { data: snapshotData, error: snapshotError } = await supabase
     .from('strategy_snapshots')
