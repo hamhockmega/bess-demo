@@ -326,7 +326,7 @@ const WiredPanel: React.FC<{
     }
   }
 
-  const priceTypeLabel = isPrice && !isDerived ? `当前展示价格类型：${stage}` : null;
+  const priceTypeLabel = isPrice && !isPredicted ? `当前展示价格类型：${stage}` : null;
 
   return (
     <div className="space-y-1">
