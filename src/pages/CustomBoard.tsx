@@ -18,7 +18,7 @@ import { SaveAsDialog } from '@/components/custom-board/SaveAsDialog';
 import { PanelChart } from '@/components/custom-board/PanelChart';
 import { PANEL_DATA_GENERATORS, ChartDataPoint } from '@/data/customBoardData';
 import { fetchCustomBoardMetric, formatIntervalTime } from '@/data/marketMetricQueries';
-import { fetchPriceSeries } from '@/data/marketPriceQueries';
+import { fetchPriceSeries, fetchPredictedPriceSeries } from '@/data/marketPriceQueries';
 import { derivePredictionSeries } from '@/data/derivedPrediction';
 import { computeStorageDispatch, type StorageConfig } from '@/data/storageDispatch';
 import { supabase } from '@/integrations/supabase/client';
@@ -213,14 +213,23 @@ const WiredPanel: React.FC<{
     return detectedStages.includes(stage);
   }, [detectedStages, stage, isPrice]);
 
-  const isDerived = stage === '智能预测' && isPrice;
-  const priceType = isDerived ? '实时电价' : stage;
+  const isPredicted = stage === '智能预测' && isPrice;
+  const priceType = isPredicted ? '实时电价' : stage;
 
   // ── Price panel query (market_price_points) ──
   const { data: priceData, isLoading: priceLoading, isError: priceError } = useQuery({
     queryKey: ['customBoardPrice', dbMetric, date, priceType],
     queryFn: () => fetchPriceSeries(dbMetric, priceType, date, '实际'),
     enabled: isPrice && stageValid,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  // ── SQL-backed predicted price query (source_stage = 智能预测) ──
+  const { data: sqlPredictedData } = useQuery({
+    queryKey: ['customBoardPredictedPrice', dbMetric, '实时电价', date],
+    queryFn: () => fetchPredictedPriceSeries(dbMetric, '实时电价', date),
+    enabled: isPredicted && stageValid,
     staleTime: 60_000,
     retry: 1,
   });
@@ -237,6 +246,9 @@ const WiredPanel: React.FC<{
   const isLoading = isPrice ? priceLoading : metricLoading;
   const isError = isPrice ? priceError : metricError;
   const rawData = isPrice ? priceData : metricData;
+
+  // SQL-first predicted prices: use SQL data if available, else derive from actual
+  const hasSqlPredicted = isPredicted && sqlPredictedData && sqlPredictedData.points.length > 0;
 
   // If stage is not valid, show message
   if (!stageValid) {
@@ -279,38 +291,49 @@ const WiredPanel: React.FC<{
     value: p.value,
   }));
 
-  // For price metrics with 智能预测, derive prediction from actual 实时电价
-  if (isDerived) {
-    const actualSeries: MetricSeries = {
-      metricName: dbMetric,
-      metricFamily: 'price',
-      scenario: '实际',
-      unit: config.unit,
-      node: '全省',
-      data: rawData.points.map(p => ({
-        dateKey: date,
-        timeKey: p.time,
-        timestamp: p.intervalIndex,
+  // For 智能预测: SQL-first, deterministic fallback second
+  if (isPredicted) {
+    if (hasSqlPredicted) {
+      // Use SQL-backed predicted prices
+      const sqlPoints = sqlPredictedData!.points;
+      chartData = rawData.points.map((p, i) => ({
+        time: p.time,
         value: p.value,
+        value2: sqlPoints.find(sp => sp.intervalIndex === p.intervalIndex)?.value ?? sqlPoints[i]?.value ?? 0,
+      }));
+    } else {
+      // Deterministic fallback
+      const actualSeries: MetricSeries = {
+        metricName: dbMetric,
+        metricFamily: 'price',
+        scenario: '实际',
         unit: config.unit,
-      })),
-    };
-    const predicted = derivePredictionSeries(actualSeries);
-    chartData = rawData.points.map((p, i) => ({
-      time: p.time,
-      value: p.value,
-      value2: predicted.data[i]?.value ?? 0,
-    }));
+        node: '全省',
+        data: rawData.points.map(p => ({
+          dateKey: date,
+          timeKey: p.time,
+          timestamp: p.intervalIndex,
+          value: p.value,
+          unit: config.unit,
+        })),
+      };
+      const predicted = derivePredictionSeries(actualSeries);
+      chartData = rawData.points.map((p, i) => ({
+        time: p.time,
+        value: p.value,
+        value2: predicted.data[i]?.value ?? 0,
+      }));
+    }
   }
 
-  const priceTypeLabel = isPrice && !isDerived ? `当前展示价格类型：${stage}` : null;
+  const priceTypeLabel = isPrice && !isPredicted ? `当前展示价格类型：${stage}` : null;
 
   return (
     <div className="space-y-1">
-      {isDerived && (
+      {isPredicted && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-primary/80">
           <Info className="w-3 h-3" />
-          智能预测基于实时电价确定性派生
+          {hasSqlPredicted ? '智能预测优先使用已导入预测数据' : '当前预测值为前端派生展示值'}
         </div>
       )}
       {priceTypeLabel && (

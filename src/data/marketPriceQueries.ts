@@ -63,6 +63,19 @@ export async function fetchPriceSeries(
   };
 }
 
+/**
+ * Fetch SQL-backed predicted price series (source_stage = '智能预测').
+ * Returns empty points array if no SQL predicted data exists.
+ */
+export async function fetchPredictedPriceSeries(
+  metricName: string,
+  priceType: string,
+  scenarioDate: string,
+  nodeName?: string,
+): Promise<PriceSeriesResult> {
+  return fetchPriceSeries(metricName, priceType, scenarioDate, '智能预测', nodeName);
+}
+
 /* ── Forecast page: dual price-type query ── */
 
 export interface ForecastPointRow {

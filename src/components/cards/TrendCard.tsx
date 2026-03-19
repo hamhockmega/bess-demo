@@ -9,7 +9,7 @@ import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
-import { fetchPriceSeries } from '@/data/marketPriceQueries';
+import { fetchPriceSeries, fetchPredictedPriceSeries } from '@/data/marketPriceQueries';
 import { findSeriesByMetric, type Scenario, type MetricSeries, type DataPoint } from '@/data/mockData';
 import { formatIntervalTime } from '@/data/marketMetricQueries';
 import { useMetricSemantics, effectiveRules, getDbStages, getDerivedStages, getAllValidStages } from '@/data/metricSemantics';
@@ -63,7 +63,6 @@ export const TrendCard: React.FC = () => {
     queryKey: ['trendPricePoints', priceMapping?.metricName, priceMapping?.priceType, queryDate],
     queryFn: async () => {
       const result = await fetchPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate, '实际');
-      // Convert PriceSeriesResult to MetricSeries for unified handling
       const series: MetricSeries = {
         metricName: trendMetric,
         metricFamily: 'price',
@@ -89,6 +88,15 @@ export const TrendCard: React.FC = () => {
     retry: 1,
   });
 
+  // ── SQL-backed predicted price query (source_stage = 智能预测) ──
+  const { data: sqlPredictedResult } = useQuery({
+    queryKey: ['trendPredictedPrice', priceMapping?.metricName, priceMapping?.priceType, queryDate],
+    queryFn: () => fetchPredictedPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate),
+    enabled: isPriceMapped,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
   // ── Standard metric query (market_metric_points) ──
   const { data: supabaseResult, isLoading: metricLoading, isError: metricIsError, error: metricError } = useQuery({
     queryKey: ['trendMetricPoints', trendMetric, queryDate, dbStages],
@@ -109,20 +117,42 @@ export const TrendCard: React.FC = () => {
     return findSeriesByMetric(trendMetric, '全省', queryDate);
   }, [trendMetric, queryDate, useSupabase]);
 
-  // ── Unified series list with frontend-derived stages ──
+  // ── Unified series list with SQL-first predicted prices ──
   const availableSeries = useMemo(() => {
     const baseSeries = useSupabase ? (queryResult?.series ?? []) : mockSeries;
-
-    // Add frontend-derived stages (e.g. 智能预测 for price metrics)
     const enriched = [...baseSeries];
+
     for (const derivedRule of derivedStageRules) {
-      const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
-      if (sourceSeries && !enriched.some(s => s.scenario === derivedRule.source_stage as Scenario)) {
-        enriched.push(derivePredictionSeries(sourceSeries));
+      const stageLabel = derivedRule.source_stage as Scenario;
+      if (enriched.some(s => s.scenario === stageLabel)) continue;
+
+      // SQL-first: check if SQL predicted data exists for this price metric
+      if (isPriceMapped && sqlPredictedResult && sqlPredictedResult.points.length > 0) {
+        const sqlSeries: MetricSeries = {
+          metricName: trendMetric,
+          metricFamily: 'price',
+          scenario: stageLabel,
+          unit: sqlPredictedResult.unit,
+          node: '全省',
+          data: sqlPredictedResult.points.map(p => ({
+            dateKey: queryDate,
+            timeKey: p.time,
+            timestamp: p.intervalIndex,
+            value: p.value,
+            unit: sqlPredictedResult.unit,
+          })),
+        };
+        enriched.push(sqlSeries);
+      } else {
+        // Deterministic fallback
+        const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
+        if (sourceSeries) {
+          enriched.push(derivePredictionSeries(sourceSeries));
+        }
       }
     }
     return enriched;
-  }, [useSupabase, queryResult, mockSeries, derivedStageRules]);
+  }, [useSupabase, queryResult, mockSeries, derivedStageRules, isPriceMapped, sqlPredictedResult, trendMetric, queryDate]);
 
   const isIncomplete = useSupabase && (queryResult?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && availableSeries.length === 0;
@@ -241,7 +271,9 @@ export const TrendCard: React.FC = () => {
         {hasDerived && trendScenario === '智能预测' && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
             <Info className="w-3.5 h-3.5" />
-            智能预测为前端派生展示值
+            {isPriceMapped && sqlPredictedResult && sqlPredictedResult.points.length > 0
+              ? '智能预测优先使用已导入预测数据'
+              : '当前预测值为前端派生展示值'}
           </div>
         )}
 
