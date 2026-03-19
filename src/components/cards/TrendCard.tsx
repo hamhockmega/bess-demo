@@ -9,7 +9,7 @@ import { aggregateData, computeStats } from '@/data/aggregation';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE } from '@/lib/chartTheme';
 import { ChartInfoButton, CHART_INFO } from '@/components/charts/ChartInfoButton';
 import { fetchTrendMetricPoints } from '@/data/marketMetricQueries';
-import { fetchPriceSeries } from '@/data/marketPriceQueries';
+import { fetchPriceSeries, fetchPredictedPriceSeries } from '@/data/marketPriceQueries';
 import { findSeriesByMetric, type Scenario, type MetricSeries, type DataPoint } from '@/data/mockData';
 import { formatIntervalTime } from '@/data/marketMetricQueries';
 import { useMetricSemantics, effectiveRules, getDbStages, getDerivedStages, getAllValidStages } from '@/data/metricSemantics';
