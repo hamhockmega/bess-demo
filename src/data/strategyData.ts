@@ -255,7 +255,7 @@ function generateSchedulePoints(
       targetPowerMw: Math.round(Math.abs(power) * 10) / 10,
       chargeBidPrice: action === '充电' ? chargePrice : null,
       dischargeBidPrice: action === '放电' ? dischargePrice : null,
-      benchmarkPrice: Math.round(p.dayAheadPrice * 100) / 100,
+      benchmarkPrice: Math.round(p.realTimePrice * 100) / 100,
       expectedSocAfter: Math.round(soc * 10) / 10,
       expectedEnergyMwh: energyMwh,
       note: null,
