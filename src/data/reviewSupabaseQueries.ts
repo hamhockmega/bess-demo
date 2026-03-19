@@ -1,6 +1,6 @@
 /**
  * Supabase data access layer for the Review page (策略复盘).
- * Replaces mock repositories with real database queries.
+ * Queries strategy_snapshots, strategy_segments, strategy_schedule_points, market_scenarios.
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { StrategySnapshot, ActualScenario } from '@/data/reviewData';
@@ -13,6 +13,21 @@ export interface StrategySegment {
   startPower: number | null;
   endPower: number | null;
   offerPrice: number;
+}
+
+// ── Schedule Point type (from DB) ──
+
+export interface SavedSchedulePoint {
+  intervalIndex: number;
+  hourIndex: number;
+  targetAction: 'charge' | 'discharge' | 'idle';
+  targetPowerMw: number;
+  chargeBidPrice: number | null;
+  dischargeBidPrice: number | null;
+  benchmarkPrice: number | null;
+  expectedSocAfter: number | null;
+  expectedEnergyMwh: number | null;
+  note: string | null;
 }
 
 // ── Strategy Snapshot list item (for dropdown) ──
@@ -100,6 +115,44 @@ export async function getStrategySegmentsByStrategyId(strategyId: number): Promi
       startPower: row.start_power,
       endPower: row.end_power,
       offerPrice: row.offer_price,
+    })),
+    error: null,
+  };
+}
+
+// ── Query: get schedule points by strategy ID ──
+
+export async function getSchedulePointsByStrategyId(strategyId: number): Promise<{
+  data: SavedSchedulePoint[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase
+    .from('strategy_schedule_points' as any)
+    .select('*')
+    .eq('strategy_id', strategyId)
+    .order('interval_index', { ascending: true });
+
+  if (error) {
+    console.error('[reviewSupabaseQueries] schedule points query failed:', error);
+    return { data: [], error: `加载时段策略结果失败：${error.message}` };
+  }
+
+  if (!data || data.length === 0) {
+    return { data: [], error: null }; // Not an error; older strategies may not have schedule points
+  }
+
+  return {
+    data: (data as any[]).map((row: any) => ({
+      intervalIndex: Number(row.interval_index),
+      hourIndex: Number(row.hour_index),
+      targetAction: row.target_action as 'charge' | 'discharge' | 'idle',
+      targetPowerMw: Number(row.target_power_mw),
+      chargeBidPrice: row.charge_bid_price != null ? Number(row.charge_bid_price) : null,
+      dischargeBidPrice: row.discharge_bid_price != null ? Number(row.discharge_bid_price) : null,
+      benchmarkPrice: row.benchmark_price != null ? Number(row.benchmark_price) : null,
+      expectedSocAfter: row.expected_soc_after != null ? Number(row.expected_soc_after) : null,
+      expectedEnergyMwh: row.expected_energy_mwh != null ? Number(row.expected_energy_mwh) : null,
+      note: row.note ?? null,
     })),
     error: null,
   };

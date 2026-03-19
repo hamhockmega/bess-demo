@@ -4,7 +4,7 @@ import { ChartInfoButton, type ChartInfoContent } from '@/components/charts/Char
 import type { ReviewResult } from '@/data/reviewData';
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
   Area,
   Line,
   XAxis,
@@ -18,9 +18,9 @@ import { AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE, CHART_COLORS } fro
 const chartInfo: ChartInfoContent = {
   title: 'SOC 轨迹复盘',
   tradingMeaning:
-    'SOC轨迹复盘图展示在实际价格场景下，按照策略规则执行充放电后的电池荷电状态变化。\n通过观察SOC曲线是否频繁触及上下限，可以判断策略的容量利用效率和执行合理性。',
+    'SOC轨迹复盘图展示在实际价格场景下，按照策略执行充放电后的电池荷电状态变化。\n当有策略目标SOC时，可对比实际与预期轨迹的偏差。',
   calculationLogic:
-    '字段逻辑：\n\n• SOC：当前时段结束后的电池荷电状态百分比。\n• SOC上限/下限：策略设定的安全运行边界。\n\n如何解读：\n\n如果SOC长时间停留在下限附近，说明放电过度或充电不足，高价时段可能无电可放。\n如果SOC长时间停留在上限附近，说明充电过多，低价时段的充电机会可能被浪费。\n理想的SOC轨迹应呈现明显的"充-放"交替节奏。',
+    '字段逻辑：\n\n• 实际SOC轨迹：基于实际场景复盘计算的SOC。\n• 策略目标SOC轨迹：策略生成时的预期SOC（如有）。\n• SOC上限/下限：策略设定的安全运行边界。\n\n充电时：入库电量 = 电网充电量 × 充电效率，SOC增加。\n放电时：电池内部放电量直接减少SOC。',
 };
 
 interface Props {
@@ -28,6 +28,8 @@ interface Props {
 }
 
 export const ReviewSocChart: React.FC<Props> = ({ result }) => {
+  const hasExpected = result.socSeries.some((s) => s.expectedSoc != null);
+
   return (
     <PanelCard
       title="SOC 轨迹复盘"
@@ -35,7 +37,7 @@ export const ReviewSocChart: React.FC<Props> = ({ result }) => {
     >
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={result.socSeries} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+          <ComposedChart data={result.socSeries} margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
             <CartesianGrid {...GRID_STYLE} />
             <XAxis
               dataKey="time"
@@ -55,12 +57,23 @@ export const ReviewSocChart: React.FC<Props> = ({ result }) => {
             <Legend {...LEGEND_STYLE} />
             <Area
               dataKey="soc"
-              name="SOC"
+              name="实际SOC轨迹"
               stroke={CHART_COLORS.primary}
               fill={CHART_COLORS.primary}
               fillOpacity={0.15}
               strokeWidth={2}
             />
+            {hasExpected && (
+              <Line
+                dataKey="expectedSoc"
+                name="策略目标SOC轨迹"
+                stroke={CHART_COLORS.blue}
+                strokeWidth={1.5}
+                dot={false}
+                strokeDasharray="6 3"
+                connectNulls
+              />
+            )}
             <Line
               dataKey="upperBound"
               name="SOC上限"
@@ -77,7 +90,7 @@ export const ReviewSocChart: React.FC<Props> = ({ result }) => {
               strokeDasharray="4 3"
               dot={false}
             />
-          </AreaChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </PanelCard>

@@ -10,21 +10,25 @@ export const StrategyReviewComparison: React.FC<Props> = ({ result }) => {
   const items = [
     {
       label: '预期收益',
-      expected: `${result.expectedProfit.toLocaleString()} 元`,
+      expected: result.expectedProfit != null ? `${result.expectedProfit.toLocaleString()} 元` : '—',
       reviewed: `${result.netProfit.toLocaleString()} 元`,
-      color: result.netProfit >= result.expectedProfit ? 'text-dashboard-green' : 'text-dashboard-red',
+      color: result.expectedProfit != null && result.netProfit >= result.expectedProfit ? 'text-dashboard-green' : 'text-dashboard-red',
     },
     {
       label: '收益偏差',
       expected: '—',
-      reviewed: `${result.profitDeviation >= 0 ? '+' : ''}${result.profitDeviation.toLocaleString()} 元`,
-      color: result.profitDeviation >= 0 ? 'text-dashboard-green' : 'text-dashboard-red',
+      reviewed: result.profitDeviation != null
+        ? `${result.profitDeviation >= 0 ? '+' : ''}${result.profitDeviation.toLocaleString()} 元`
+        : '—',
+      color: result.profitDeviation != null && result.profitDeviation >= 0 ? 'text-dashboard-green' : 'text-dashboard-red',
     },
     {
-      label: '预期中标概率 / 复盘命中率',
-      expected: `${result.expectedAwardProbability}%`,
-      reviewed: `${result.reviewedHitRate}%`,
-      color: result.reviewedHitRate >= result.expectedAwardProbability * 0.8 ? 'text-dashboard-green' : 'text-dashboard-orange',
+      label: '预期中标概率 / 复盘执行率',
+      expected: result.expectedAwardProbability != null ? `${result.expectedAwardProbability}%` : '—',
+      reviewed: `${result.reviewedExecutionRate}%`,
+      color: result.expectedAwardProbability != null && result.reviewedExecutionRate >= result.expectedAwardProbability * 0.8
+        ? 'text-dashboard-green'
+        : 'text-dashboard-orange',
     },
     {
       label: '执行充电时段数',
@@ -36,6 +40,12 @@ export const StrategyReviewComparison: React.FC<Props> = ({ result }) => {
       label: '执行放电时段数',
       expected: '—',
       reviewed: `${result.dischargeIntervalCount} 个时段`,
+      color: 'text-foreground',
+    },
+    {
+      label: '复盘模式',
+      expected: '—',
+      reviewed: result.reviewMode === 'schedule-point' ? '时段策略复盘' : '触发价格复盘',
       color: 'text-foreground',
     },
   ];
