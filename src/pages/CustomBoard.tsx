@@ -138,6 +138,8 @@ const WiredPanel: React.FC<{
   stage: string;
   subItem: string;
 }> = ({ panelName, config, date, stage, subItem }) => {
+  const isPrice = config.type === 'price';
+
   // Resolve actual DB metric name (系统负荷 sub-items map to different metrics)
   const dbMetric = useMemo(() => {
     if (panelName === '系统负荷') {
@@ -151,17 +153,32 @@ const WiredPanel: React.FC<{
     return config.dbMetricName;
   }, [panelName, config.dbMetricName, subItem]);
 
-  const isDbStage = config.dbStages.includes(stage);
-  const isDerived = stage === '智能预测' && config.type === 'price';
-  const fetchStage = isDerived ? '实际' : stage;
+  const isDerived = stage === '智能预测' && isPrice;
+  // For price panels: stage is a price_type (日前电价/实时电价) or 智能预测
+  // For 智能预测, derive from 实时电价
+  const priceType = isDerived ? '实时电价' : stage;
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['customBoardMetric', dbMetric, date, fetchStage],
-    queryFn: () => fetchCustomBoardMetric(dbMetric, date, fetchStage),
-    enabled: isDbStage || isDerived,
+  // ── Price panel query (market_price_points) ──
+  const { data: priceData, isLoading: priceLoading, isError: priceError } = useQuery({
+    queryKey: ['customBoardPrice', dbMetric, date, priceType],
+    queryFn: () => fetchPriceSeries(dbMetric, priceType, date, '实际'),
+    enabled: isPrice,
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ── Load panel query (market_metric_points) ──
+  const { data: metricData, isLoading: metricLoading, isError: metricError } = useQuery({
+    queryKey: ['customBoardMetric', dbMetric, date, stage],
+    queryFn: () => fetchCustomBoardMetric(dbMetric, date, stage),
+    enabled: !isPrice,
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const isLoading = isPrice ? priceLoading : metricLoading;
+  const isError = isPrice ? priceError : metricError;
+  const rawData = isPrice ? priceData : metricData;
 
   if (isLoading) {
     return (
@@ -181,7 +198,7 @@ const WiredPanel: React.FC<{
     );
   }
 
-  if (!data || data.points.length === 0) {
+  if (!rawData || rawData.points.length === 0) {
     return (
       <div className="h-[220px] flex items-center justify-center text-muted-foreground">
         <span className="text-xs">当前指标暂无可用场景数据</span>
@@ -190,12 +207,12 @@ const WiredPanel: React.FC<{
   }
 
   // Convert to ChartDataPoint format
-  let chartData: ChartDataPoint[] = data.points.map(p => ({
+  let chartData: ChartDataPoint[] = rawData.points.map(p => ({
     time: p.time,
     value: p.value,
   }));
 
-  // For price metrics with 智能预测, derive prediction from actual
+  // For price metrics with 智能预测, derive prediction from actual 实时电价
   if (isDerived) {
     const actualSeries: MetricSeries = {
       metricName: dbMetric,
@@ -203,7 +220,7 @@ const WiredPanel: React.FC<{
       scenario: '实际',
       unit: config.unit,
       node: '全省',
-      data: data.points.map(p => ({
+      data: rawData.points.map(p => ({
         dateKey: date,
         timeKey: p.time,
         timestamp: p.intervalIndex,
@@ -212,22 +229,31 @@ const WiredPanel: React.FC<{
       })),
     };
     const predicted = derivePredictionSeries(actualSeries);
-    chartData = data.points.map((p, i) => ({
+    chartData = rawData.points.map((p, i) => ({
       time: p.time,
       value: p.value,
       value2: predicted.data[i]?.value ?? 0,
     }));
   }
 
+  // Label for current price type
+  const priceTypeLabel = isPrice && !isDerived ? `当前展示价格类型：${stage}` : null;
+
   return (
     <div className="space-y-1">
       {isDerived && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-600">
           <Info className="w-3 h-3" />
-          智能预测为前端派生展示值
+          智能预测基于实时电价确定性派生
         </div>
       )}
-      {data.isIncomplete && (
+      {priceTypeLabel && (
+        <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-muted-foreground">
+          <Info className="w-3 h-3" />
+          {priceTypeLabel}
+        </div>
+      )}
+      {rawData.isIncomplete && (
         <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-amber-600">
           <AlertTriangle className="w-3 h-3" />
           当前场景数据不完整
