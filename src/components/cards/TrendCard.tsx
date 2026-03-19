@@ -271,7 +271,9 @@ export const TrendCard: React.FC = () => {
         {hasDerived && trendScenario === '智能预测' && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-600">
             <Info className="w-3.5 h-3.5" />
-            智能预测为前端派生展示值
+            {isPriceMapped && sqlPredictedResult && sqlPredictedResult.points.length > 0
+              ? '智能预测优先使用已导入预测数据'
+              : '当前预测值为前端派生展示值'}
           </div>
         )}
 
