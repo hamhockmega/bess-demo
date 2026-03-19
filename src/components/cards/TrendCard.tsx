@@ -109,20 +109,53 @@ export const TrendCard: React.FC = () => {
     return findSeriesByMetric(trendMetric, '全省', queryDate);
   }, [trendMetric, queryDate, useSupabase]);
 
+  // ── SQL-backed predicted price query (try SQL first for 智能预测) ──
+  const { data: sqlPredictedResult } = useQuery({
+    queryKey: ['trendSqlPredicted', priceMapping?.metricName, priceMapping?.priceType, queryDate],
+    queryFn: async () => {
+      const result = await fetchPredictedPriceSeries(priceMapping!.metricName, priceMapping!.priceType, queryDate);
+      if (result.points.length === 0) return null;
+      const series: MetricSeries = {
+        metricName: trendMetric,
+        metricFamily: 'price',
+        scenario: '智能预测' as Scenario,
+        unit: result.unit,
+        node: '全省',
+        data: result.points.map(p => ({
+          dateKey: queryDate,
+          timeKey: p.time,
+          timestamp: p.intervalIndex,
+          value: p.value,
+          unit: result.unit,
+        })),
+      };
+      return series;
+    },
+    enabled: isPriceMapped,
+    staleTime: 60_000,
+  });
+
   // ── Unified series list with frontend-derived stages ──
   const availableSeries = useMemo(() => {
     const baseSeries = useSupabase ? (queryResult?.series ?? []) : mockSeries;
 
-    // Add frontend-derived stages (e.g. 智能预测 for price metrics)
     const enriched = [...baseSeries];
     for (const derivedRule of derivedStageRules) {
+      // If SQL predicted data exists, use it instead of frontend derivation
+      if (derivedRule.source_stage === '智能预测' && sqlPredictedResult) {
+        if (!enriched.some(s => s.scenario === '智能预测')) {
+          enriched.push(sqlPredictedResult);
+        }
+        continue;
+      }
+      // Fallback: frontend-derived prediction
       const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
       if (sourceSeries && !enriched.some(s => s.scenario === derivedRule.source_stage as Scenario)) {
         enriched.push(derivePredictionSeries(sourceSeries));
       }
     }
     return enriched;
-  }, [useSupabase, queryResult, mockSeries, derivedStageRules]);
+  }, [useSupabase, queryResult, mockSeries, derivedStageRules, sqlPredictedResult]);
 
   const isIncomplete = useSupabase && (queryResult?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && availableSeries.length === 0;
