@@ -4,7 +4,7 @@
  * Business logic based on 独立储能报量报价中标模型.
  *
  * DETERMINISTIC: For the same (form, scenario, forecastDate) the output is always identical.
- * Uses shared energy accounting from energyAccounting.ts.
+ * Uses shared energy accounting from energyAccounting.ts for all energy/SOC calculations.
  */
 
 import type { StrategyForm, GeneratedStrategy, QuotationSegment, SchedulePoint, PowerPoint, SocPoint, EnergyPoint } from '@/data/strategyData';
@@ -15,7 +15,10 @@ import {
   formatIntervalTime,
   normalizeEfficiency,
   INTERVAL_HOURS,
+  calcChargeEnergy,
+  calcDischargeEnergy,
   calcSoc,
+  calcProfit,
 } from '@/data/energyAccounting';
 
 // ── Types ──
@@ -68,8 +71,8 @@ function runSchedule(
   const capacity = form.availableCapacity; // MWh
   const chargePower = Math.abs(form.chargePowerLimit); // MW
   const dischargePower = form.dischargePowerLimit; // MW
-  const chargingEff = normalizeEfficiency(form.chargingEfficiency ?? 95);
-  const dischargingEff = normalizeEfficiency(form.dischargingEfficiency ?? 94);
+  const chargingEffPct = form.chargingEfficiency ?? 95;
+  const dischargingEffPct = form.dischargingEfficiency ?? 94;
   const minSoc = form.minSoc;
   const maxSoc = form.maxSoc;
 
@@ -86,19 +89,15 @@ function runSchedule(
     let action: '充电' | '放电' | '空闲' = '空闲';
     let power = 0;
 
-    // Determine candidate action
+    // Determine candidate action based on price ranking
+    const currentSocPct = calcSoc(batteryMwh, capacity, 0, 100);
     if (chargeIntervals.has(i)) {
-      const gridEnergy = chargePower * INTERVAL_HOURS;
-      const storedEnergy = gridEnergy * chargingEff;
-      const socDelta = (storedEnergy / capacity) * 100;
-      if (calcSoc(batteryMwh, capacity, 0, 100) + socDelta <= maxSoc) {
+      if (currentSocPct < maxSoc - 0.1) {
         action = '充电';
         power = chargePower;
       }
     } else if (dischargeIntervals.has(i)) {
-      const internalEnergy = dischargePower * INTERVAL_HOURS;
-      const socDelta = (internalEnergy / capacity) * 100;
-      if (calcSoc(batteryMwh, capacity, 0, 100) - socDelta >= minSoc) {
+      if (currentSocPct > minSoc + 0.1) {
         action = '放电';
         power = dischargePower;
       }
@@ -120,17 +119,14 @@ function runSchedule(
       const minRequired = lastAction === '充电' ? minChargeIntervals : minDischargeIntervals;
       if (continuousCount < minRequired && continuousCount > 0) {
         if (lastAction === '充电') {
-          const gridEnergy = chargePower * INTERVAL_HOURS;
-          const storedEnergy = gridEnergy * chargingEff;
-          const socDelta = (storedEnergy / capacity) * 100;
-          if (calcSoc(batteryMwh, capacity, 0, 100) + socDelta <= maxSoc) {
+          const probe = calcChargeEnergy(chargePower, chargingEffPct, capacity, batteryMwh, maxSoc);
+          if (probe.gridEnergyMwh > 0.001) {
             action = '充电';
             power = chargePower;
           }
         } else if (lastAction === '放电') {
-          const internalEnergy = dischargePower * INTERVAL_HOURS;
-          const socDelta = (internalEnergy / capacity) * 100;
-          if (calcSoc(batteryMwh, capacity, 0, 100) - socDelta >= minSoc) {
+          const probe = calcDischargeEnergy(dischargePower, dischargingEffPct, capacity, batteryMwh, minSoc);
+          if (probe.internalEnergyMwh > 0.001) {
             action = '放电';
             power = dischargePower;
           }
@@ -138,29 +134,30 @@ function runSchedule(
       }
     }
 
-    // Compute energy flows using unified model
+    // Compute energy flows using unified shared functions
     let gridEnergyMwh = 0;
     let storedEnergyMwh = 0;
     let internalEnergyMwh = 0;
     let marketDeliveredMwh = 0;
 
     if (action === '充电') {
-      const gridEnergy = power * INTERVAL_HOURS;
-      const stored = gridEnergy * chargingEff;
-      const maxStorable = (maxSoc / 100) * capacity - batteryMwh;
-      const actualStored = Math.min(stored, maxStorable);
-      const actualGrid = actualStored / chargingEff;
-      batteryMwh += actualStored;
-      gridEnergyMwh = r2(actualGrid);
-      storedEnergyMwh = r2(actualStored);
+      const result = calcChargeEnergy(power, chargingEffPct, capacity, batteryMwh, maxSoc);
+      gridEnergyMwh = result.gridEnergyMwh;
+      storedEnergyMwh = result.storedEnergyMwh;
+      batteryMwh += result.storedEnergyMwh;
+      if (result.gridEnergyMwh < 0.001) {
+        action = '空闲';
+        power = 0;
+      }
     } else if (action === '放电') {
-      const internalEnergy = power * INTERVAL_HOURS;
-      const available = batteryMwh - (minSoc / 100) * capacity;
-      const actualInternal = Math.min(internalEnergy, available);
-      const delivered = actualInternal * dischargingEff;
-      batteryMwh -= actualInternal;
-      internalEnergyMwh = r2(actualInternal);
-      marketDeliveredMwh = r2(delivered);
+      const result = calcDischargeEnergy(power, dischargingEffPct, capacity, batteryMwh, minSoc);
+      internalEnergyMwh = result.internalEnergyMwh;
+      marketDeliveredMwh = result.marketDeliveredMwh;
+      batteryMwh -= result.internalEnergyMwh;
+      if (result.internalEnergyMwh < 0.001) {
+        action = '空闲';
+        power = 0;
+      }
     }
 
     const socAfter = calcSoc(batteryMwh, capacity, minSoc, maxSoc);
@@ -201,7 +198,6 @@ function runSchedule(
  */
 function deriveSegmentsFromDecisions(
   decisions: IntervalDecision[],
-  form: StrategyForm,
 ): QuotationSegment[] {
   // Collect charge segments grouped by bid price
   const chargePriceMap = new Map<number, { minPower: number; maxPower: number; count: number }>();
@@ -330,10 +326,10 @@ export function buildStrategyFromScenario(
   });
 
   // Derive quotation segments from schedule decisions (aligned, not static)
-  const quotationSegments = deriveSegmentsFromDecisions(decisions, form);
+  const quotationSegments = deriveSegmentsFromDecisions(decisions);
 
   const strategy: GeneratedStrategy = {
-    strategyId: `STR-${Date.now()}`,
+    strategyId: `STR-${forecastDate}-${form.strategyName}`,
     strategyName: form.strategyName,
     status: '已生成',
     quotationSegments,
@@ -351,11 +347,11 @@ export function buildStrategyFromScenario(
       utilizationRate: form.utilizationRate,
       expectedEndSoc: form.expectedEndSoc,
     },
-    priceBenchmark: '智能预测-发电侧均价',
+    priceBenchmark: '预测场景价格',
     createdAt: new Date().toLocaleString('zh-CN'),
   };
 
-  // Derive performance from schedule and scenario (deterministic)
+  // Derive performance from schedule and scenario using unified accounting
   const performance = derivePerformance(form, strategy, scenario, decisions);
 
   return { strategy, performance };
@@ -367,10 +363,8 @@ function derivePerformance(
   scenario: ForecastScenario,
   decisions: IntervalDecision[],
 ): StrategyPerformance {
-  const chargingEff = normalizeEfficiency(form.chargingEfficiency ?? 95);
-  const dischargingEff = normalizeEfficiency(form.dischargingEfficiency ?? 94);
-  const chargingEffPct = Math.round(chargingEff * 100);
-  const dischargingEffPct = Math.round(dischargingEff * 100);
+  const chargingEffPct = form.chargingEfficiency ?? 95;
+  const dischargingEffPct = form.dischargingEfficiency ?? 94;
 
   let totalGridCharge = 0;
   let totalStored = 0;
@@ -388,22 +382,26 @@ function derivePerformance(
     if (d.action === '充电') {
       totalGridCharge += d.gridEnergyMwh;
       totalStored += d.storedEnergyMwh;
+      // Charge cost: grid energy × settlement price
       totalChargeCost += d.gridEnergyMwh * iv.userSettlementPrice;
       chargeIntervalCount++;
     } else if (d.action === '放电') {
       totalInternalDischarge += d.internalEnergyMwh;
       totalMarketDelivered += d.marketDeliveredMwh;
+      // Discharge revenue: market delivered energy × front node price
       totalDischargeRevenue += d.marketDeliveredMwh * iv.frontNodePrice;
       dischargeIntervalCount++;
     }
   }
 
-  const avgChargePrice = chargeIntervalCount > 0 ? r2(totalChargeCost / totalGridCharge) : 0;
-  const avgDischargePrice = dischargeIntervalCount > 0 ? r2(totalDischargeRevenue / totalMarketDelivered) : 0;
+  const avgChargePrice = chargeIntervalCount > 0 && totalGridCharge > 0 ? r2(totalChargeCost / totalGridCharge) : 0;
+  const avgDischargePrice = dischargeIntervalCount > 0 && totalMarketDelivered > 0 ? r2(totalDischargeRevenue / totalMarketDelivered) : 0;
 
+  // Other costs: use form lossCostValue with total grid charge
   const otherCosts = r2(form.lossCostMode === '考虑' ? form.lossCostValue * totalGridCharge * 0.05 : 0);
-  const grossArbitrageIncome = r2(totalDischargeRevenue - totalChargeCost);
-  const netProfit = r2(grossArbitrageIncome - otherCosts);
+
+  // Use unified profit calculation
+  const profit = calcProfit(totalChargeCost, totalDischargeRevenue, otherCosts);
 
   // Award probability proxy: ratio of active intervals to candidate intervals
   const totalActive = chargeIntervalCount + dischargeIntervalCount;
@@ -414,7 +412,7 @@ function derivePerformance(
 
   return {
     strategyId: strategy.strategyId,
-    expectedRevenue: netProfit,
+    expectedRevenue: profit.netProfit,
     awardProbability,
     chargeEnergy: r2(totalGridCharge),
     dischargeEnergy: r2(totalMarketDelivered),
@@ -423,12 +421,12 @@ function derivePerformance(
     chargingEfficiency: chargingEffPct,
     dischargingEfficiency: dischargingEffPct,
     otherCosts,
-    chargingCost: r2(totalChargeCost),
+    chargingCost: profit.chargingCost,
     storedEnergy: r2(totalStored),
     effectiveDischargeEnergy: r2(totalMarketDelivered),
-    dischargeRevenue: r2(totalDischargeRevenue),
-    grossArbitrageIncome,
-    netProfit,
+    dischargeRevenue: profit.dischargeRevenue,
+    grossArbitrageIncome: profit.grossArbitrageIncome,
+    netProfit: profit.netProfit,
     riskLevel,
   };
 }
