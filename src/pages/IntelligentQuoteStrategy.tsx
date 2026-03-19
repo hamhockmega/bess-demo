@@ -8,7 +8,7 @@ import { StrategyResultChart } from '@/components/strategy/StrategyResultChart';
 import { RuntimeParameterPanel } from '@/components/strategy/RuntimeParameterPanel';
 import { StrategyPerformanceSummary } from '@/components/strategy/StrategyPerformanceSummary';
 import { StrategyRevenueBreakdown } from '@/components/strategy/StrategyRevenueBreakdown';
-import { StrategyAwardProbabilityPanel } from '@/components/strategy/StrategyAwardProbabilityPanel';
+
 import { StrategyCalculationLogicPanel } from '@/components/strategy/StrategyCalculationLogicPanel';
 import { ScenarioPreviewPanel } from '@/components/strategy/ScenarioPreviewPanel';
 import { PanelCard } from '@/components/dashboard/PanelCard';
