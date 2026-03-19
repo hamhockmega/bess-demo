@@ -117,20 +117,42 @@ export const TrendCard: React.FC = () => {
     return findSeriesByMetric(trendMetric, '全省', queryDate);
   }, [trendMetric, queryDate, useSupabase]);
 
-  // ── Unified series list with frontend-derived stages ──
+  // ── Unified series list with SQL-first predicted prices ──
   const availableSeries = useMemo(() => {
     const baseSeries = useSupabase ? (queryResult?.series ?? []) : mockSeries;
-
-    // Add frontend-derived stages (e.g. 智能预测 for price metrics)
     const enriched = [...baseSeries];
+
     for (const derivedRule of derivedStageRules) {
-      const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
-      if (sourceSeries && !enriched.some(s => s.scenario === derivedRule.source_stage as Scenario)) {
-        enriched.push(derivePredictionSeries(sourceSeries));
+      const stageLabel = derivedRule.source_stage as Scenario;
+      if (enriched.some(s => s.scenario === stageLabel)) continue;
+
+      // SQL-first: check if SQL predicted data exists for this price metric
+      if (isPriceMapped && sqlPredictedResult && sqlPredictedResult.points.length > 0) {
+        const sqlSeries: MetricSeries = {
+          metricName: trendMetric,
+          metricFamily: 'price',
+          scenario: stageLabel,
+          unit: sqlPredictedResult.unit,
+          node: '全省',
+          data: sqlPredictedResult.points.map(p => ({
+            dateKey: queryDate,
+            timeKey: p.time,
+            timestamp: p.intervalIndex,
+            value: p.value,
+            unit: sqlPredictedResult.unit,
+          })),
+        };
+        enriched.push(sqlSeries);
+      } else {
+        // Deterministic fallback
+        const sourceSeries = baseSeries.find(s => s.scenario === derivedRule.derived_from_stage);
+        if (sourceSeries) {
+          enriched.push(derivePredictionSeries(sourceSeries));
+        }
       }
     }
     return enriched;
-  }, [useSupabase, queryResult, mockSeries, derivedStageRules]);
+  }, [useSupabase, queryResult, mockSeries, derivedStageRules, isPriceMapped, sqlPredictedResult, trendMetric, queryDate]);
 
   const isIncomplete = useSupabase && (queryResult?.isIncomplete ?? false);
   const hasNoData = useSupabase && !isLoading && !isError && availableSeries.length === 0;
