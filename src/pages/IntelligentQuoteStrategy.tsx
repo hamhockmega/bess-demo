@@ -38,32 +38,27 @@ const IntelligentQuoteStrategy: React.FC = () => {
   const [performance, setPerformance] = useState<StrategyPerformance | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const handleSaveForReview = useCallback(() => {
-    if (!strategy || !performance) return;
-    const snapshot: StrategySnapshot = {
-      strategyId: strategy.strategyId,
-      strategyName: strategy.strategyName,
-      strategySourceType: 'generated',
-      strategyDate: new Date().toISOString().slice(0, 10),
-      initialSoc: form.initialSoc,
-      socMin: form.minSoc,
-      socMax: form.maxSoc,
-      chargePowerLimit: Math.abs(form.chargePowerLimit),
-      dischargePowerLimit: form.dischargePowerLimit,
-      chargePriceTrigger: strategy.quotationSegments.find(s => s.type === '充电')?.offerPrice ?? 200,
-      dischargePriceTrigger: strategy.quotationSegments.find(s => s.type === '放电')?.offerPrice ?? 350,
-      chargingEfficiency: performance.chargingEfficiency,
-      dischargingEfficiency: performance.dischargingEfficiency,
-      otherCosts: performance.otherCosts,
-      capacity: form.availableCapacity,
-      notes: `由智能策略生成，${strategy.createdAt}`,
-      generatedAt: strategy.createdAt,
-      expectedProfit: performance.netProfit,
-      expectedAwardProbability: performance.awardProbability,
-    };
-    strategySnapshotRepository.save(snapshot);
-    toast.success('策略已保存，可在"策略复盘"中使用');
-  }, [strategy, performance, form]);
+  const handleSaveForReview = useCallback(async () => {
+    if (!strategy || !performance) {
+      toast.error('请先生成策略后再保存');
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      const result = await saveGeneratedStrategyToSupabase(form, strategy, performance);
+      if (result.success) {
+        toast.success('已成功保存为复盘策略');
+      } else {
+        toast.error(result.error ?? '保存失败，请稍后重试');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('保存失败，请稍后重试');
+    } finally {
+      setSaving(false);
+    }
+  }, [strategy, performance, form, saving]);
 
   const handleGenerate = useCallback(() => {
     const result = generateMockStrategy(form);
