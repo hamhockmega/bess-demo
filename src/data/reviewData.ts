@@ -4,10 +4,7 @@
  * Architecture:
  * - Repositories provide raw data (strategy snapshots + actual market scenarios)
  * - ReviewEngine computes all results in the frontend
- * - ActualScenario data is fetched from Supabase `market_scenarios` table
  */
-
-import { supabase } from '@/integrations/supabase/client';
 
 // ── Types ──
 
@@ -147,38 +144,49 @@ function getMockSnapshot(): StrategySnapshot {
   };
 }
 
-// ── Actual Scenario Repository (reads from Supabase `market_scenarios`) ──
+// ── Actual Scenario Repository ──
+
+function generateMockPrices(date: string): ActualScenario {
+  // Seed-based on date for deterministic results
+  const seed = date.split('-').reduce((a, b) => a + parseInt(b), 0);
+  const rand = (i: number) => {
+    const x = Math.sin(seed * 9301 + i * 49297 + 233280) * 233280;
+    return x - Math.floor(x);
+  };
+
+  const frontNodePrices: number[] = [];
+  const userSettlementPrices: number[] = [];
+
+  for (let i = 0; i < 96; i++) {
+    const h = Math.floor(i / 4);
+    let basePrice = 250;
+
+    // Low valley: 0-6h
+    if (h >= 0 && h < 6) basePrice = 100 + rand(i * 3) * 80;
+    // Morning ramp: 6-8h
+    else if (h >= 6 && h < 8) basePrice = 200 + rand(i * 3) * 100;
+    // Morning peak: 8-11h
+    else if (h >= 8 && h < 11) basePrice = 380 + rand(i * 3) * 120;
+    // Midday valley: 11-14h (solar surplus)
+    else if (h >= 11 && h < 14) basePrice = 120 + rand(i * 3) * 100;
+    // Afternoon: 14-17h
+    else if (h >= 14 && h < 17) basePrice = 250 + rand(i * 3) * 80;
+    // Evening peak: 17-21h
+    else if (h >= 17 && h < 21) basePrice = 420 + rand(i * 3) * 180;
+    // Night: 21-24h
+    else basePrice = 180 + rand(i * 3) * 80;
+
+    frontNodePrices.push(Math.round(basePrice * 100) / 100);
+    // User settlement price is typically lower with some spread
+    userSettlementPrices.push(Math.round((basePrice * (0.85 + rand(i * 7) * 0.1)) * 100) / 100);
+  }
+
+  return { scenarioDate: date, frontNodePrices, userSettlementPrices };
+}
 
 export const actualScenarioRepository = {
-  async getByDate(date: string): Promise<ActualScenario | null> {
-    const { data, error } = await supabase
-      .from('market_scenarios')
-      .select('interval_index, front_node_price, user_settlement_price')
-      .eq('scenario_date', date)
-      .order('interval_index', { ascending: true });
-
-    if (error) {
-      console.error('加载市场场景失败:', error.message);
-      return null;
-    }
-
-    if (!data || data.length === 0) {
-      return null;
-    }
-
-    // Build 96-slot arrays; fill missing intervals with 0
-    const frontNodePrices = new Array(96).fill(0);
-    const userSettlementPrices = new Array(96).fill(0);
-
-    for (const row of data) {
-      const idx = row.interval_index;
-      if (idx >= 0 && idx < 96) {
-        frontNodePrices[idx] = Number(row.front_node_price);
-        userSettlementPrices[idx] = Number(row.user_settlement_price);
-      }
-    }
-
-    return { scenarioDate: date, frontNodePrices, userSettlementPrices };
+  getByDate(date: string): ActualScenario {
+    return generateMockPrices(date);
   },
 };
 
